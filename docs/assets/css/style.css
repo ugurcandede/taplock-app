@@ -1,0 +1,29 @@
+/* Override minima dark theme tweaks */
+
+.site-header {
+  border-top: 3px solid #4a6cf7;
+}
+
+.site-title {
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+}
+
+/* Code blocks */
+pre, code {
+  border-radius: 6px;
+}
+
+/* Tables */
+table {
+  width: 100%;
+}
+
+table th {
+  text-align: left;
+}
+
+/* Images in screenshots section */
+img {
+  border-radius: 12px;
+}
