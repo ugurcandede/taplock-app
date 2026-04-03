@@ -1,0 +1,4 @@
+[submodule "deps/cleanlock"]
+	path = deps/cleanlock
+	url = https://github.com/ugurcandede/cleanlock.git
+	branch = main

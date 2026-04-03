@@ -1,0 +1,39 @@
+name: Update Dependencies
+
+on:
+  repository_dispatch:
+    types: [cleanlock-updated]
+  workflow_dispatch:
+
+jobs:
+  update-submodule:
+    runs-on: macos-14
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Update submodule to latest main
+        run: |
+          git submodule update --remote --merge
+          NEW_COMMIT=$(git -C deps/cleanlock rev-parse --short HEAD)
+          echo "Updated cleanlock submodule to: $NEW_COMMIT"
+          echo "NEW_COMMIT=$NEW_COMMIT" >> $GITHUB_ENV
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add deps/cleanlock
+          if git diff --cached --quiet; then
+            echo "Submodule already up to date"
+          else
+            git commit -m "Update cleanlock submodule to ${{ env.NEW_COMMIT }}
+
+          [skip ci]"
+            git push
+          fi

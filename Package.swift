@@ -8,7 +8,7 @@ let package = Package(
         .macOS(.v13)
     ],
     dependencies: [
-        .package(url: "https://github.com/ugurcandede/cleanlock.git", branch: "main")
+        .package(path: "deps/cleanlock")
     ],
     targets: [
         .executableTarget(
