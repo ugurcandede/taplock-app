@@ -2,13 +2,3 @@ title: TapLock
 description: Temporarily disable keyboard and trackpad input on your Mac
 baseurl: /taplock-app
 url: https://ugurcandede.github.io
-
-theme: minima
-
-header_pages:
-  - guide.md
-  - faq.md
-  - download.md
-
-minima:
-  skin: dark

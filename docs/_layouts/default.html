@@ -3,54 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ page.title }} | {{ site.title }}</title>
+  <title>{% if page.title == "Home" %}{{ site.title }} — {{ site.description }}{% else %}{{ page.title }} | {{ site.title }}{% endif %}</title>
   <meta name="description" content="{{ site.description }}">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/minima@2.5.1/assets/css/minima-skins/dark.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
-    .wrapper { max-width: 800px; margin: 0 auto; padding: 0 20px; }
-    .site-header { padding: 16px 0; border-bottom: 1px solid #333; }
-    .site-header .wrapper { display: flex; justify-content: space-between; align-items: center; }
-    .site-title { font-size: 1.4em; font-weight: 700; color: #e8e8e8; text-decoration: none; }
-    .site-nav a { color: #aaa; text-decoration: none; margin-left: 20px; font-size: 0.9em; }
-    .site-nav a:hover { color: #fff; }
-    .site-footer { padding: 30px 0; border-top: 1px solid #333; text-align: center; color: #666; font-size: 0.85em; }
-    .page-content { padding: 30px 0; }
-    a { color: #4a6cf7; }
-    h1, h2, h3 { color: #e8e8e8; }
-    body { background: #1a1a2e; color: #ccc; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { padding: 8px 12px; border: 1px solid #333; text-align: left; }
-    th { background: #222; }
-    pre { background: #111; padding: 16px; border-radius: 8px; overflow-x: auto; }
-    code { background: #222; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-    pre code { background: none; padding: 0; }
-    img { border-radius: 12px; }
-  </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="wrapper">
-      <a class="site-title" href="{{ '/' | relative_url }}">{{ site.title }}</a>
-      <nav class="site-nav">
-        <a href="{{ '/' | relative_url }}">Home</a>
+  <header>
+    <div class="container">
+      <a class="logo" href="{{ '/' | relative_url }}">
+        <img src="{{ '/assets/images/icon.png' | relative_url }}" alt="TapLock" width="28" height="28" onerror="this.style.display='none'">
+        <span>TapLock</span>
+      </a>
+      <nav>
         <a href="{{ '/guide' | relative_url }}">Guide</a>
         <a href="{{ '/faq' | relative_url }}">FAQ</a>
-        <a href="{{ '/download' | relative_url }}">Download</a>
+        <a href="{{ '/download' | relative_url }}" class="btn-nav">Download</a>
       </nav>
     </div>
   </header>
 
-  <main class="page-content">
-    <div class="wrapper">
+  <main class="{% if page.title != 'Home' %}page-content{% endif %}">
+    <div class="container">
       {{ content }}
     </div>
   </main>
 
-  <footer class="site-footer">
-    <div class="wrapper">
-      <p>Built with ❤️ for 💻 users · <a href="https://github.com/ugurcandede">ugurcandede</a></p>
+  <footer>
+    <div class="container">
+      Built with ❤️ for Mac users · <a href="https://github.com/ugurcandede">ugurcandede</a> · <a href="https://github.com/ugurcandede/taplock">CLI</a> · <a href="https://github.com/ugurcandede/taplock-app">App</a>
     </div>
   </footer>
 </body>

@@ -3,84 +3,92 @@ layout: default
 title: Home
 ---
 
-<div style="text-align: center; padding: 40px 0 20px;">
-  <h1 style="font-size: 2.5em; margin-bottom: 0.2em;">TapLock</h1>
-  <p style="font-size: 1.2em; opacity: 0.7;">Temporarily disable keyboard and trackpad input on your Mac</p>
-</div>
+<div class="hero">
+  <img src="assets/images/icon.png" alt="TapLock" class="hero-icon">
+  <h1>TapLock</h1>
+  <p>Temporarily disable keyboard and trackpad input on your Mac. No root required.</p>
 
-<div style="text-align: center; margin: 20px 0 40px;">
-
-```bash
-brew tap ugurcandede/taplock
-brew install taplock              # CLI
-brew install --cask taplock-app   # Menu bar app
-```
-
-</div>
-
----
-
-## Features
-
-| Feature | Description |
-|---|---|
-| **Input Blocking** | Block keyboard, trackpad, and mouse via CGEvent tap |
-| **Countdown Overlay** | Full-screen timer with clock display |
-| **Custom Duration** | Seconds, minutes, or indefinite with 5 min safety |
-| **Screen Dimming** | Reduce brightness to minimum during lock |
-| **Sound Effects** | Audio feedback on lock start/end |
-| **Custom Colors** | Named colors or hex values for overlay background |
-| **Emergency Cancel** | Hold **Cmd+Option+Ctrl+L** for 3 seconds |
-| **Menu Bar App** | Native macOS popover with presets and settings |
-
----
-
-## Screenshots
-
-<div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 30px 0;">
-  <img src="assets/images/app-infinite.png" alt="Indefinite Mode" width="220">
-  <img src="assets/images/app-seconds.png" alt="Custom Duration" width="220">
-  <img src="assets/images/settings.png" alt="Settings" width="220">
-</div>
-
-**Lock Screen Overlay**
-
-<div style="text-align: center; margin: 20px 0;">
-  <img src="assets/images/lock-screen.png" alt="Lock Screen" width="600">
+  <div class="hero-install">
+    <span class="comment"># Install via Homebrew</span><br>
+    brew tap ugurcandede/taplock<br>
+    brew install taplock<span class="comment">              # CLI</span><br>
+    brew install --cask taplock-app<span class="comment">   # Menu bar app</span>
+  </div>
 </div>
 
 ---
 
-## Quick Start
-
-### CLI
-
-```bash
-taplock                          # Lock until cancelled (5 min safety)
-taplock 30                       # Lock for 30 seconds
-taplock 2m                       # Lock for 2 minutes
-taplock --color black --dim      # Full cleaning mode
-taplock --cancel                 # Cancel from another terminal
-```
-
-### Menu Bar App
-
-1. Launch TapLock from Applications
-2. Click the lock icon in the menu bar
-3. Set duration or use a preset
-4. Click **start**
+<div class="features">
+  <h2>Features</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="icon">⌨️</div>
+      <h3>Input Blocking</h3>
+      <p>Block keyboard, trackpad, and mouse via CGEvent tap at system level.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">⏱️</div>
+      <h3>Countdown Overlay</h3>
+      <p>Full-screen timer with current clock display. Customizable background color.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">♾️</div>
+      <h3>Flexible Duration</h3>
+      <p>Set seconds, minutes, or lock indefinitely with 5-minute safety auto-unlock.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🔅</div>
+      <h3>Screen Dimming</h3>
+      <p>Reduce brightness to minimum during lock. Automatically restores on unlock.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🔔</div>
+      <h3>Sound Feedback</h3>
+      <p>Audio cues on lock start and end. Silent mode available.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🚨</div>
+      <h3>Emergency Cancel</h3>
+      <p>Hold <strong>⌘⌥⌃L</strong> for 3 seconds to cancel any time — always works.</p>
+    </div>
+  </div>
+</div>
 
 ---
 
-## Requirements
-
-- macOS 13.0 (Ventura) or later
-- Apple Silicon or Intel
-- Accessibility permission (guided setup on first run)
+<div class="screenshots">
+  <h2>Screenshots</h2>
+  <div class="screenshots-row">
+    <img src="assets/images/app-infinite.png" alt="Indefinite Mode" width="220">
+    <img src="assets/images/app-seconds.png" alt="Custom Duration" width="220">
+    <img src="assets/images/settings.png" alt="Settings" width="220">
+  </div>
+  <img src="assets/images/lock-screen.png" alt="Lock Screen" class="screenshot-full" width="640">
+  <p class="screenshot-label">Full-screen countdown overlay during active lock</p>
+</div>
 
 ---
 
-<div style="text-align: center; opacity: 0.5; padding: 20px 0;">
-  <p>Built with ❤️ for 💻 users</p>
-  <p><a href="https://github.com/ugurcandede">ugurcandede</a> · <a href="https://github.com/ugurcandede/taplock">CLI Repo</a> · <a href="https://github.com/ugurcandede/taplock-app">App Repo</a></p>
+<div class="features">
+  <h2>Two Ways to Use</h2>
+  <div class="features-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="feature-card">
+      <div class="icon">💻</div>
+      <h3>CLI</h3>
+      <p>Power user friendly. Full control from the terminal with all options and flags.</p>
+      <pre style="background:#1a1a2e;color:#e8e8e8;padding:12px;border-radius:8px;font-size:0.85em;margin-top:12px;">taplock 30 --dim --color black</pre>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🖱️</div>
+      <h3>Menu Bar App</h3>
+      <p>Click, set, lock. Presets, custom input, settings — all from the menu bar.</p>
+    </div>
+  </div>
+</div>
+
+---
+
+<div style="text-align:center; padding: 40px 0 20px;">
+  <h2>Requirements</h2>
+  <p style="color: var(--text-secondary);">macOS 13.0 (Ventura) or later · Apple Silicon or Intel · Accessibility permission</p>
 </div>
