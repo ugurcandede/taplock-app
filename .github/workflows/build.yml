@@ -30,11 +30,23 @@ jobs:
           MAJOR=$(echo "$LATEST" | sed 's/v//' | cut -d. -f1)
           MINOR=$(echo "$LATEST" | sed 's/v//' | cut -d. -f2)
           PATCH=$(echo "$LATEST" | sed 's/v//' | cut -d. -f3)
-          NEW_TAG="v${MAJOR}.${MINOR}.$((PATCH + 1))"
-          VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+
+          # Semantic versioning from commit message prefix
+          # BREAKING: or bump: → major, feat: → minor, default → patch
+          MSG=$(git log -1 --pretty=%s)
+          if echo "$MSG" | grep -qiE '^(BREAKING|bump):'; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif echo "$MSG" | grep -qi '^feat:'; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "New version: $NEW_TAG"
+          echo "New version: $NEW_TAG (from: $MSG)"
 
       - name: Inject version into Info.plist
         run: |
