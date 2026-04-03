@@ -1113,7 +1113,9 @@ struct AboutSection: View {
                     HStack(spacing: 3) {
                         Image(systemName: "tag")
                             .font(.system(size: 8))
-                        Text("v0.1.0")
+                        Text(
+                            "v\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ".dev")"
+                        )
                             .font(.system(size: 10))
                     }
                 }
