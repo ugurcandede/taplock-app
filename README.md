@@ -21,9 +21,13 @@ Menu bar app for [TapLock](https://github.com/ugurcandede/taplock) — temporari
 
 ## Screenshots
 
-| Indefinite Mode | Custom Duration | Settings | Lock Screen |
-|:---:|:---:|:---:|:---:|
-| ![Indefinite](screenshots/app-infinite.png) | ![Seconds](screenshots/app-seconds.png) | ![Settings](screenshots/settings.png) | ![Lock](screenshots/lock-screen.png) |
+| Indefinite Mode | Custom Duration | Settings |
+|:---:|:---:|:---:|
+| ![Indefinite](screenshots/app-infinite.png) | ![Seconds](screenshots/app-seconds.png) | ![Settings](screenshots/settings.png) |
+
+**Lock Screen Overlay**
+
+![Lock Screen](screenshots/lock-screen.png)
 
 ## Install
 
