@@ -25,3 +25,4 @@ codesign --force --sign - --identifier com.ugurcandede.taplock "${BUNDLE_DIR}"
 
 echo "Done: ${BUNDLE_DIR}"
 echo "Run with: open ${BUNDLE_DIR}"
+
