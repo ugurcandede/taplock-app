@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/assets/images/icon.png" alt="TapLock" width="80">
   <h1>TapLock App</h1>
-  <p>Menu bar app to temporarily disable keyboard and trackpad input on your Mac.</p>
+  <p>Menu bar app to temporarily disable keyboard and trackpad input, or take relaxing breaks on your Mac.</p>
   <br>
   <a href="https://github.com/ugurcandede/taplock-app/releases/latest"><img src="https://img.shields.io/github/v/release/ugurcandede/taplock-app?label=version&style=flat-square" alt="Version"></a>
   <a href="https://github.com/ugurcandede/taplock-app/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/ugurcandede/taplock-app/build.yml?style=flat-square" alt="Build"></a>
@@ -34,20 +34,21 @@ brew install --cask taplock-app
 
 | | Feature |
 |---|---|
-| 🔒 | Menu bar icon with lock status indicator |
+| 🔒 | **Lock Mode** — Menu bar icon with lock status indicator |
 | ⏱️ | Quick presets: 30s, 1m, 2m, 5m, 10m |
-| 🔢 | Custom duration input (seconds) |
+| 🔢 | Custom duration input (seconds, minutes, hours) |
 | ♾️ | Indefinite lock mode (5 min safety auto-unlock) |
 | ⏳ | Pre-lock delay with visible countdown |
 | ⌨️ | Keyboard only mode |
-| 🎨 | Overlay color presets |
+| 🧘 | **Relax Mode** — Periodic break reminders with calming overlays |
+| 🎨 | Overlay color and transparency presets |
 | 🔅 | Screen dimming |
 | 🔇 | Silent mode |
 | 🚨 | Emergency cancel: hold **⌘⌥⌃L** for 3 seconds |
 
 ---
 
-## Screenshots
+## Lock Mode
 
 <div align="center">
 
@@ -58,6 +59,28 @@ brew install --cask taplock-app
 **Lock Screen Overlay**
 
 <img src="screenshots/lock-screen.png" alt="Lock Screen" width="600">
+
+</div>
+
+---
+
+## Relax Mode
+
+<div align="center">
+
+|                             Relax Setup                             |                                   Break Countdown                                    | Break Relaxing Countdown                                                                       |                               Relax Settings                                |
+|:-------------------------------------------------------------------:|:------------------------------------------------------------------------------------:|------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------:|
+| <img src="screenshots/relax/app.png" alt="Relax Setup" width="200"> | <img src="screenshots/relax/in-app-countdown.png" alt="Break Countdown" width="200"> | <img src="screenshots/relax/in-app-countdown-2.png" alt="Break Session Countdown" width="200"> | <img src="screenshots/relax/settings.png" alt="Relax Settings" width="200"> |
+
+**Overlay Themes**
+
+| Minimal | Mini |
+|:---:|:---:|
+| <img src="screenshots/relax/minimal.png" alt="Minimal" width="300"> | <img src="screenshots/relax/mini.png" alt="Mini" width="300"> |
+
+| Breathing | Breathing (dark) |
+|:---:|:---:|
+| <img src="screenshots/relax/breathing.png" alt="Breathing" width="300"> | <img src="screenshots/relax/breathing-2.png" alt="Breathing Dark" width="300"> |
 
 </div>
 
@@ -83,10 +106,13 @@ Built on `TapLockCore` from the [taplock](https://github.com/ugurcandede/taplock
 
 | Module | Purpose |
 |---|---|
-| **TapLockSession** | Session orchestration (start/cancel/onEnd) |
+| **TapLockSession** | Lock session orchestration (start/cancel/onEnd) |
+| **RelaxingSession** | Relaxing session with interval timer and break lifecycle |
 | **InputBlocker** | CGEvent tap for input blocking |
 | **BrightnessControl** | Screen brightness control |
-| **CountdownWindow** | Full-screen overlay with countdown |
+| **CountdownWindow** | Full-screen lock overlay with countdown |
+| **RelaxingWindow** | Relaxing overlay with breathing/minimal/mini themes |
+| **ConfigStore** | JSON persistence for relaxing session config |
 
 ---
 

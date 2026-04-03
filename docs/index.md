@@ -6,7 +6,7 @@ title: Home
 <div class="hero">
   <img src="assets/images/icon.png" alt="TapLock" class="hero-icon">
   <h1>TapLock</h1>
-  <p style="margin-bottom: 0 !important;">Temporarily disable keyboard and trackpad input on your Mac.</p>
+  <p style="margin-bottom: 0 !important;">Temporarily disable keyboard and trackpad input, or take relaxing breaks on your Mac.</p>
   <p><strong>No root required.</strong></p>
 
   <div style="margin: 16px 0 24px; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
@@ -59,13 +59,28 @@ title: Home
       <h3>Emergency Cancel</h3>
       <p>Hold <strong>⌘⌥⌃L</strong> for 3 seconds to cancel any time — always works.</p>
     </div>
+    <div class="feature-card">
+      <div class="icon">🧘</div>
+      <h3>Relaxing Sessions</h3>
+      <p>Periodic break reminders with calming overlay themes. Pomodoro-style or custom intervals.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🔒</div>
+      <h3>No Root Required</h3>
+      <p>Runs with standard user permissions. Only needs Accessibility access — no sudo, no admin.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">💾</div>
+      <h3>Persistent Config</h3>
+      <p>Save your relaxing session settings once. Next time, just run <code>taplock relax</code>.</p>
+    </div>
   </div>
 </div>
 
 ---
 
 <div class="screenshots">
-  <h2>Screenshots</h2>
+  <h2>Lock Mode</h2>
   <div class="screenshots-row">
     <img src="assets/images/app-infinite.png" alt="Indefinite Mode" width="220">
     <img src="assets/images/app-seconds.png" alt="Custom Duration" width="220">
@@ -77,6 +92,27 @@ title: Home
 
 ---
 
+<div class="screenshots">
+  <h2>Relax Mode</h2>
+  <div class="screenshots-row">
+    <img src="assets/images/relax/app.png" alt="Relax Setup" width="220">
+    <img src="assets/images/relax/in-app-countdown.png" alt="Break Countdown" width="220">
+    <img src="assets/images/relax/in-app-countdown-2.png" alt="Break Session Countdown" width="220">
+    <img src="assets/images/relax/settings.png" alt="Relax Settings" width="220">
+  </div>
+  <p class="screenshot-label" style="margin-bottom: 16px;"><strong>Overlay Themes</strong></p>
+  <div class="screenshots-row">
+    <img src="assets/images/relax/minimal.png" alt="Minimal Theme" width="300">
+    <img src="assets/images/relax/mini.png" alt="Mini Theme" width="300">
+  </div>
+  <div class="screenshots-row screenshots-row--lg">
+    <img src="assets/images/relax/breathing.png" alt="Breathing Theme">
+    <img src="assets/images/relax/breathing-2.png" alt="Breathing Dark">
+  </div>
+</div>
+
+---
+
 <div class="features">
   <h2>Two Ways to Use</h2>
   <div class="features-grid" style="grid-template-columns: 1fr 1fr;">
@@ -84,12 +120,13 @@ title: Home
       <div class="icon">💻</div>
       <h3>CLI</h3>
       <p>Power user friendly. Full control from the terminal with all options and flags.</p>
-      <pre style="background:#1a1a2e;color:#e8e8e8;padding:12px;border-radius:8px;font-size:0.85em;margin-top:12px;">taplock 30 --dim --color black</pre>
+      <pre style="background:#1a1a2e;color:#e8e8e8;padding:12px;border-radius:8px;font-size:0.85em;margin-top:12px;">taplock 30 --dim --color black
+taplock relax --every 25m --break 5m</pre>
     </div>
     <div class="feature-card">
       <div class="icon">🖱️</div>
       <h3>Menu Bar App</h3>
-      <p>Click, set, lock. Presets, custom input, settings — all from the menu bar.</p>
+      <p>Lock and Relax modes. Presets, custom input, theme selection — all from the menu bar.</p>
     </div>
   </div>
 </div>

@@ -41,11 +41,40 @@
       <a href="https://github.com/ugurcandede/homebrew-taplock" target="_blank">🍺 Homebrew</a>
     </div>
   </footer>
+  <div class="lightbox" id="lightbox">
+    <img id="lightbox-img" src="" alt="">
+  </div>
   <script>
     document.querySelectorAll('a[href^="http"]').forEach(a => {
       if (!a.hostname || a.hostname !== location.hostname) {
         a.setAttribute('target', '_blank');
         a.setAttribute('rel', 'noopener');
+      }
+    });
+
+    // Lightbox
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+
+    document.querySelectorAll('.screenshots-row img, .screenshot-full').forEach(img => {
+      img.addEventListener('click', () => {
+        lbImg.src = img.src;
+        lbImg.alt = img.alt;
+        lb.style.display = 'flex';
+        requestAnimationFrame(() => lb.classList.add('active'));
+      });
+    });
+
+    lb.addEventListener('click', (e) => {
+      if (e.target === lbImg) return;
+      lb.classList.remove('active');
+      setTimeout(() => { lb.style.display = 'none'; }, 200);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && lb.classList.contains('active')) {
+        lb.classList.remove('active');
+        setTimeout(() => { lb.style.display = 'none'; }, 200);
       }
     });
   </script>
