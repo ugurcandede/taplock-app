@@ -8,7 +8,7 @@ final class MenuBarController {
     private var statusItem: NSStatusItem
     private var popover: NSPopover
     private let viewModel = MenuBarViewModel()
-    private var countdownTimer: Timer?
+    private var menuBarTimer: Timer?
 
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -49,13 +49,13 @@ final class MenuBarController {
             accessibilityDescription: "CleanLock"
         )
 
-        countdownTimer?.invalidate()
-        countdownTimer = nil
+        menuBarTimer?.invalidate()
+        menuBarTimer = nil
 
         if isActive && viewModel.showTimerInMenuBar {
-            countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            menuBarTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
                 guard let self = self, self.viewModel.isActive else {
-                    self?.countdownTimer?.invalidate()
+                    timer.invalidate()
                     self?.statusItem.button?.title = ""
                     return
                 }
@@ -84,11 +84,13 @@ final class MenuBarViewModel: ObservableObject {
     @Published var showTimerInMenuBar = false
     @Published var selectedColor: OverlayColor = .defaultColor
     @Published var showSettings = false
+    @Published var lastError: String? = nil
 
     var onSessionStateChanged: ((Bool) -> Void)?
     private var session: CleanLockSession?
     private var countdownTimer: Timer?
     private let maxSafetyDuration = 300
+    private let maxDuration = 3600 // 1 hour cap
 
     var parsedDuration: Int? {
         if isInfiniteMode { return nil }
@@ -99,39 +101,53 @@ final class MenuBarViewModel: ObservableObject {
 
     func startSession() {
         guard !isActive else { return }
+        lastError = nil
+
         guard InputBlocker.checkAccessibility() else {
             InputBlocker.requestAccessibility()
+            lastError = "Accessibility permission required"
             return
         }
 
         let effectiveDuration = parsedDuration ?? maxSafetyDuration
+        if effectiveDuration > maxDuration {
+            lastError = "Maximum duration is \(maxDuration / 60) minutes"
+            return
+        }
+
         let delay = Int(delaySeconds) ?? 0
+        let startBlock = { [weak self] in
+            guard let self = self else { return }
+            let config = SessionConfig(
+                duration: effectiveDuration,
+                keyboardOnly: self.keyboardOnly,
+                dim: self.dimEnabled,
+                silent: self.silentEnabled,
+                showOverlay: self.showOverlay,
+                overlayColor: self.selectedColor.rgb
+            )
+
+            self.session = CleanLockSession(config: config)
+            self.session?.onEnd = { [weak self] in
+                self?.sessionEnded()
+            }
+
+            do {
+                try self.session?.start()
+                self.isActive = true
+                self.remainingSeconds = effectiveDuration
+                self.onSessionStateChanged?(true)
+                self.startCountdownTimer()
+            } catch {
+                self.lastError = "\(error)"
+                self.session = nil
+            }
+        }
+
         if delay > 0 {
-            Thread.sleep(forTimeInterval: TimeInterval(delay))
-        }
-
-        let config = SessionConfig(
-            duration: effectiveDuration,
-            keyboardOnly: keyboardOnly,
-            dim: dimEnabled,
-            silent: silentEnabled,
-            showOverlay: showOverlay,
-            overlayColor: selectedColor.rgb
-        )
-
-        session = CleanLockSession(config: config)
-        session?.onEnd = { [weak self] in
-            self?.sessionEnded()
-        }
-
-        do {
-            try session?.start()
-            isActive = true
-            remainingSeconds = effectiveDuration
-            onSessionStateChanged?(true)
-            startCountdownTimer()
-        } catch {
-            session = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(delay), execute: startBlock)
+        } else {
+            startBlock()
         }
     }
 
@@ -164,9 +180,17 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     private func startCountdownTimer() {
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self, self.remainingSeconds > 0 else { return }
-            self.remainingSeconds -= 1
+        countdownTimer?.invalidate()
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            if self.remainingSeconds > 0 {
+                self.remainingSeconds -= 1
+            } else {
+                timer.invalidate()
+            }
         }
     }
 }
@@ -304,6 +328,19 @@ struct IdleView: View {
                 .buttonStyle(.plain)
             .focusable(false)
                 Divider().padding(.horizontal, 16)
+            }
+
+            // Error message
+            if let error = viewModel.lastError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.system(size: 10))
+                    Text(error)
+                        .font(.system(size: 10))
+                }
+                .foregroundColor(.red)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 6)
             }
 
             // Duration input area
