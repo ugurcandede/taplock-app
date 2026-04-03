@@ -30,6 +30,14 @@ final class MenuBarController {
         viewModel.onSessionStateChanged = { [weak self] isActive in
             self?.updateStatusItem(isActive: isActive)
         }
+
+        viewModel.onLockStarted = { [weak self] in
+            self?.popover.performClose(nil)
+        }
+
+        viewModel.onPopoverClose = { [weak self] in
+            self?.popover.performClose(nil)
+        }
     }
 
     @objc private func togglePopover() {
@@ -73,6 +81,8 @@ final class MenuBarController {
 
 final class MenuBarViewModel: ObservableObject {
     @Published var isActive = false
+    @Published var isDelaying = false
+    @Published var delayRemaining: Int = 0
     @Published var remainingSeconds: Int = 0
     @Published var durationInput: String = ""
     @Published var isInfiniteMode = true
@@ -87,8 +97,11 @@ final class MenuBarViewModel: ObservableObject {
     @Published var lastError: String? = nil
 
     var onSessionStateChanged: ((Bool) -> Void)?
+    var onLockStarted: (() -> Void)?
+    var onPopoverClose: (() -> Void)?
     private var session: CleanLockSession?
     private var countdownTimer: Timer?
+    private var delayTimer: Timer?
     private let maxSafetyDuration = 300
     private let maxDuration = 3600 // 1 hour cap
 
@@ -116,38 +129,55 @@ final class MenuBarViewModel: ObservableObject {
         }
 
         let delay = Int(delaySeconds) ?? 0
-        let startBlock = { [weak self] in
-            guard let self = self else { return }
-            let config = SessionConfig(
-                duration: effectiveDuration,
-                keyboardOnly: self.keyboardOnly,
-                dim: self.dimEnabled,
-                silent: self.silentEnabled,
-                showOverlay: self.showOverlay,
-                overlayColor: self.selectedColor.rgb
-            )
-
-            self.session = CleanLockSession(config: config)
-            self.session?.onEnd = { [weak self] in
-                self?.sessionEnded()
-            }
-
-            do {
-                try self.session?.start()
-                self.isActive = true
-                self.remainingSeconds = effectiveDuration
-                self.onSessionStateChanged?(true)
-                self.startCountdownTimer()
-            } catch {
-                self.lastError = "\(error)"
-                self.session = nil
-            }
-        }
 
         if delay > 0 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(delay), execute: startBlock)
+            isDelaying = true
+            delayRemaining = delay
+            isActive = true
+            onSessionStateChanged?(true)
+
+            delayTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+                guard let self = self else { timer.invalidate(); return }
+                self.delayRemaining -= 1
+                if self.delayRemaining <= 0 {
+                    timer.invalidate()
+                    self.delayTimer = nil
+                    self.isDelaying = false
+                    self.beginLock(duration: effectiveDuration)
+                }
+            }
         } else {
-            startBlock()
+            beginLock(duration: effectiveDuration)
+        }
+    }
+
+    private func beginLock(duration: Int) {
+        let config = SessionConfig(
+            duration: duration,
+            keyboardOnly: keyboardOnly,
+            dim: dimEnabled,
+            silent: silentEnabled,
+            showOverlay: showOverlay,
+            overlayColor: selectedColor.rgb
+        )
+
+        session = CleanLockSession(config: config)
+        session?.onEnd = { [weak self] in
+            self?.sessionEnded()
+        }
+
+        do {
+            try session?.start()
+            isActive = true
+            remainingSeconds = duration
+            onSessionStateChanged?(true)
+            onLockStarted?()
+            startCountdownTimer()
+        } catch {
+            lastError = "\(error)"
+            session = nil
+            isActive = false
+            onSessionStateChanged?(false)
         }
     }
 
@@ -156,7 +186,15 @@ final class MenuBarViewModel: ObservableObject {
         durationInput = "\(seconds)"
     }
 
-    func cancelSession() { session?.cancel() }
+    func cancelSession() {
+        if isDelaying {
+            delayTimer?.invalidate()
+            delayTimer = nil
+            sessionEnded()
+        } else {
+            session?.cancel()
+        }
+    }
 
     var hasAccessibility: Bool { InputBlocker.checkAccessibility() }
 
@@ -172,11 +210,16 @@ final class MenuBarViewModel: ObservableObject {
 
     private func sessionEnded() {
         isActive = false
+        isDelaying = false
         remainingSeconds = 0
+        delayRemaining = 0
         countdownTimer?.invalidate()
         countdownTimer = nil
+        delayTimer?.invalidate()
+        delayTimer = nil
         session = nil
         onSessionStateChanged?(false)
+        onPopoverClose?()
     }
 
     private func startCountdownTimer() {
@@ -268,14 +311,28 @@ struct ActiveView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 16) {
-                Text(viewModel.formattedRemaining)
-                    .font(.system(size: 56, weight: .ultraLight, design: .monospaced))
-                    .padding(.top, 24)
+            if viewModel.isDelaying {
+                // Delay countdown
+                VStack(spacing: 16) {
+                    Text("\(viewModel.delayRemaining)")
+                        .font(.system(size: 56, weight: .ultraLight, design: .monospaced))
+                        .padding(.top, 24)
 
-                Text(viewModel.keyboardOnly ? "keyboard blocked" : "all input blocked")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    Text("starting in...")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                // Lock countdown
+                VStack(spacing: 16) {
+                    Text(viewModel.formattedRemaining)
+                        .font(.system(size: 56, weight: .ultraLight, design: .monospaced))
+                        .padding(.top, 24)
+
+                    Text(viewModel.keyboardOnly ? "keyboard blocked" : "all input blocked")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
             }
 
             Spacer().frame(height: 20)
@@ -293,11 +350,14 @@ struct ActiveView: View {
             .cornerRadius(8)
             .padding(.horizontal, 20)
 
-            Text("⌘⌥⌃L  hold 3s")
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(.secondary.opacity(0.5))
-                .padding(.top, 10)
-                .padding(.bottom, 16)
+            if !viewModel.isDelaying {
+                Text("⌘⌥⌃L  hold 3s")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(.secondary.opacity(0.5))
+                    .padding(.top, 10)
+            }
+
+            Spacer().frame(height: 16)
         }
     }
 }
