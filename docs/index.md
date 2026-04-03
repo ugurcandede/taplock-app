@@ -97,6 +97,17 @@ title: Home
 ---
 
 <div style="text-align:center; padding: 40px 0 20px;">
+  <h2>Links</h2>
+  <div style="margin: 16px 0 24px; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
+    <a href="https://github.com/ugurcandede/taplock"><img src="https://img.shields.io/badge/CLI%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="CLI" height="22"></a>
+    <a href="https://github.com/ugurcandede/taplock-app"><img src="https://img.shields.io/badge/App%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="App" height="22"></a>
+    <a href="https://github.com/ugurcandede/homebrew-taplock"><img src="https://img.shields.io/badge/Homebrew%20Tap-FBB040?style=flat-square&logo=homebrew&logoColor=000" alt="Homebrew" height="22"></a>
+  </div>
+</div>
+
+---
+
+<div style="text-align:center; padding: 40px 0 20px;">
   <h2>Requirements</h2>
   <p style="color: var(--text-secondary);">macOS 13.0 (Ventura) or later · Apple Silicon or Intel · Accessibility permission</p>
 </div>

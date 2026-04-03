@@ -12,6 +12,14 @@
 </div>
 
 ---
+#### Releated
+<p style="text-align: center">
+  <a href="https://ugurcandede.github.io/taplock-app"><img src="https://img.shields.io/badge/Website-000?style=flat-square&logo=safari&logoColor=white" alt="Website"></a>
+  <a href="https://github.com/ugurcandede/taplock"><img src="https://img.shields.io/badge/CLI%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="CLI"></a>
+  <a href="https://github.com/ugurcandede/homebrew-taplock"><img src="https://img.shields.io/badge/Homebrew%20Tap-FBB040?style=flat-square&logo=homebrew&logoColor=000" alt="Homebrew"></a>
+</p>
+
+---
 
 ## Install
 
@@ -85,10 +93,6 @@ Built on `TapLockCore` from the [taplock](https://github.com/ugurcandede/taplock
 ## Requirements
 
 macOS 13.0 (Ventura) or later · Apple Silicon or Intel · Accessibility permission
-
-## Links
-
-[Website](https://ugurcandede.github.io/taplock-app) · [CLI Repo](https://github.com/ugurcandede/taplock) · [Homebrew Tap](https://github.com/ugurcandede/homebrew-taplock) · [Guide](https://ugurcandede.github.io/taplock-app/guide) · [FAQ](https://ugurcandede.github.io/taplock-app/faq)
 
 ## License
 
