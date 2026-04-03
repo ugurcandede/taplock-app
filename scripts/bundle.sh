@@ -21,7 +21,7 @@ if [ -f "${ICON_SRC}" ]; then
     cp "${ICON_SRC}" "${BUNDLE_DIR}/Contents/Resources/AppIcon.icns"
 fi
 
-codesign --force --sign - --identifier com.ugurcandede.taplock "${BUNDLE_DIR}"
+codesign --force --deep --sign - --identifier com.ugurcandede.taplock "${BUNDLE_DIR}"
 
 echo "Done: ${BUNDLE_DIR}"
 echo "Run with: open ${BUNDLE_DIR}"
