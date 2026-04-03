@@ -1,0 +1,61 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build arm64
+        run: swift build -c release --arch arm64
+
+      - name: Build x86_64
+        run: swift build -c release --arch x86_64
+
+      - name: Create universal binary
+        run: |
+          lipo -create \
+            .build/arm64-apple-macosx/release/CleanLockApp \
+            .build/x86_64-apple-macosx/release/CleanLockApp \
+            -output CleanLockApp-universal
+
+      - name: Create .app bundle
+        run: |
+          APP="CleanLock.app"
+          mkdir -p "${APP}/Contents/MacOS"
+          mkdir -p "${APP}/Contents/Resources"
+          cp CleanLockApp-universal "${APP}/Contents/MacOS/CleanLockApp"
+          cp Sources/CleanLockApp/Info.plist "${APP}/Contents/Info.plist"
+          cp Resources/AppIcon.icns "${APP}/Contents/Resources/AppIcon.icns"
+
+      - name: Package
+        run: |
+          zip -r CleanLock-macos.zip CleanLock.app
+          shasum -a 256 CleanLock-macos.zip > CleanLock-macos.zip.sha256
+          echo "SHA256=$(cat CleanLock-macos.zip.sha256 | awk '{print $1}')" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            CleanLock-macos.zip
+            CleanLock-macos.zip.sha256
+          body: |
+            ## CleanLock App ${{ github.ref_name }}
+
+            **SHA256:** `${{ env.SHA256 }}`
+
+            ### Install
+            ```bash
+            brew tap ugurcandede/cleanlock
+            brew install --cask cleanlock-app
+            ```
+
+            Or download `CleanLock-macos.zip`, extract, and move `CleanLock.app` to Applications.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

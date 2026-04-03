@@ -19,7 +19,16 @@ Menu bar app for [CleanLock](https://github.com/ugurcandede/cleanlock) — tempo
 - Optional countdown timer in menu bar
 - Emergency cancel: hold **Cmd+Option+Ctrl+L** for 3 seconds
 
-## Build & Run
+## Install
+
+### Homebrew
+
+```bash
+brew tap ugurcandede/cleanlock
+brew install --cask cleanlock-app
+```
+
+### Build from source
 
 Requires Swift 5.9+ and the [cleanlock](https://github.com/ugurcandede/cleanlock) repo cloned alongside this project.
 
@@ -30,8 +39,9 @@ Desktop/Projects/
 ```
 
 ```bash
-swift build
-swift run
+swift build -c release
+./scripts/bundle.sh .build/release/CleanLockApp
+open CleanLock.app
 ```
 
 ## Permissions

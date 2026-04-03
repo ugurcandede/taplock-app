@@ -16,6 +16,7 @@ let package = Package(
             dependencies: [
                 .product(name: "CleanLockCore", package: "cleanlock")
             ],
+            exclude: ["Info.plist"],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
