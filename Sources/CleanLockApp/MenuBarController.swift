@@ -8,15 +8,18 @@ final class MenuBarController {
     private var statusItem: NSStatusItem
     private var popover: NSPopover
     private let viewModel = MenuBarViewModel()
+    private var countdownTimer: Timer?
 
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 420)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
+
+        let hostingController = NSHostingController(
             rootView: MenuBarView(viewModel: viewModel)
         )
+        hostingController.sizingOptions = .preferredContentSize
+        popover.contentViewController = hostingController
 
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "lock.open.fill", accessibilityDescription: "CleanLock")
@@ -25,62 +28,83 @@ final class MenuBarController {
         }
 
         viewModel.onSessionStateChanged = { [weak self] isActive in
-            self?.updateIcon(isActive: isActive)
+            self?.updateStatusItem(isActive: isActive)
         }
     }
 
     @objc private func togglePopover() {
         if popover.isShown {
+            popover.contentViewController?.view.window?.makeFirstResponder(nil)
             popover.performClose(nil)
         } else if let button = statusItem.button {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            popover.contentViewController?.view.window?.makeFirstResponder(nil)
         }
     }
 
-    private func updateIcon(isActive: Bool) {
+    private func updateStatusItem(isActive: Bool) {
         let symbolName = isActive ? "lock.fill" : "lock.open.fill"
         statusItem.button?.image = NSImage(
             systemSymbolName: symbolName,
             accessibilityDescription: "CleanLock"
         )
+
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+
+        if isActive && viewModel.showTimerInMenuBar {
+            countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self = self, self.viewModel.isActive else {
+                    self?.countdownTimer?.invalidate()
+                    self?.statusItem.button?.title = ""
+                    return
+                }
+                let mins = self.viewModel.remainingSeconds / 60
+                let secs = self.viewModel.remainingSeconds % 60
+                self.statusItem.button?.title = String(format: " %d:%02d", mins, secs)
+            }
+        } else {
+            statusItem.button?.title = ""
+        }
     }
 }
 
 // MARK: - ViewModel
 
 final class MenuBarViewModel: ObservableObject {
-    // Session state
     @Published var isActive = false
     @Published var remainingSeconds: Int = 0
-
-    // Settings
-    @Published var customMinutes: String = ""
-    @Published var customSeconds: String = ""
+    @Published var durationInput: String = ""
+    @Published var isInfiniteMode = true
     @Published var delaySeconds: String = ""
     @Published var dimEnabled = false
     @Published var silentEnabled = false
     @Published var keyboardOnly = false
     @Published var showOverlay = true
+    @Published var showTimerInMenuBar = false
     @Published var selectedColor: OverlayColor = .defaultColor
+    @Published var showSettings = false
 
     var onSessionStateChanged: ((Bool) -> Void)?
-
     private var session: CleanLockSession?
     private var countdownTimer: Timer?
     private let maxSafetyDuration = 300
 
-    // MARK: - Actions
+    var parsedDuration: Int? {
+        if isInfiniteMode { return nil }
+        let trimmed = durationInput.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { return nil }
+        return Int(trimmed).flatMap { $0 > 0 ? $0 : nil }
+    }
 
-    func startSession(duration: Int?) {
+    func startSession() {
         guard !isActive else { return }
         guard InputBlocker.checkAccessibility() else {
             InputBlocker.requestAccessibility()
             return
         }
 
-        let effectiveDuration = duration ?? maxSafetyDuration
-
-        // Apply delay if set
+        let effectiveDuration = parsedDuration ?? maxSafetyDuration
         let delay = Int(delaySeconds) ?? 0
         if delay > 0 {
             Thread.sleep(forTimeInterval: TimeInterval(delay))
@@ -111,21 +135,14 @@ final class MenuBarViewModel: ObservableObject {
         }
     }
 
-    func startCustomSession() {
-        let mins = Int(customMinutes) ?? 0
-        let secs = Int(customSeconds) ?? 0
-        let total = mins * 60 + secs
-        guard total > 0 else { return }
-        startSession(duration: total)
+    func applyPreset(seconds: Int) {
+        isInfiniteMode = false
+        durationInput = "\(seconds)"
     }
 
-    func cancelSession() {
-        session?.cancel()
-    }
+    func cancelSession() { session?.cancel() }
 
-    var hasAccessibility: Bool {
-        InputBlocker.checkAccessibility()
-    }
+    var hasAccessibility: Bool { InputBlocker.checkAccessibility() }
 
     var formattedRemaining: String {
         let mins = remainingSeconds / 60
@@ -133,7 +150,9 @@ final class MenuBarViewModel: ObservableObject {
         return String(format: "%d:%02d", mins, secs)
     }
 
-    // MARK: - Private
+    func filterDigits(_ value: inout String) {
+        value = value.filter { $0.isNumber }
+    }
 
     private func sessionEnded() {
         isActive = false
@@ -146,10 +165,8 @@ final class MenuBarViewModel: ObservableObject {
 
     private func startCountdownTimer() {
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            if self.remainingSeconds > 0 {
-                self.remainingSeconds -= 1
-            }
+            guard let self = self, self.remainingSeconds > 0 else { return }
+            self.remainingSeconds -= 1
         }
     }
 }
@@ -198,62 +215,66 @@ struct MenuBarView: View {
     @ObservedObject var viewModel: MenuBarViewModel
 
     var body: some View {
-        VStack(spacing: 0) {
+        Group {
             if viewModel.isActive {
-                ActiveSessionView(viewModel: viewModel)
+                ActiveView(viewModel: viewModel)
             } else {
                 IdleView(viewModel: viewModel)
             }
         }
-        .frame(width: 300)
+        .frame(width: 280)
+        .fixedSize(horizontal: false, vertical: true)
+        .animation(.easeInOut(duration: 0.15), value: viewModel.showSettings)
+        .animation(.easeInOut(duration: 0.15), value: viewModel.isInfiniteMode)
+        .onAppear {
+            DispatchQueue.main.async {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            }
+        }
+        .onDisappear {
+            NSApp.keyWindow?.makeFirstResponder(nil)
+        }
     }
 }
 
-// MARK: - Active Session View
+// MARK: - Active View
 
-struct ActiveSessionView: View {
+struct ActiveView: View {
     @ObservedObject var viewModel: MenuBarViewModel
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer().frame(height: 8)
+        VStack(spacing: 0) {
+            VStack(spacing: 16) {
+                Text(viewModel.formattedRemaining)
+                    .font(.system(size: 56, weight: .ultraLight, design: .monospaced))
+                    .padding(.top, 24)
 
-            Image(systemName: "lock.fill")
-                .font(.system(size: 36))
-                .foregroundColor(.accentColor)
-
-            Text(viewModel.formattedRemaining)
-                .font(.system(size: 48, weight: .ultraLight, design: .monospaced))
-
-            HStack(spacing: 16) {
-                if viewModel.keyboardOnly {
-                    Label("Keyboard", systemImage: "keyboard")
-                } else {
-                    Label("All input", systemImage: "keyboard")
-                }
-                if viewModel.dimEnabled {
-                    Label("Dimmed", systemImage: "sun.min")
-                }
+                Text(viewModel.keyboardOnly ? "keyboard blocked" : "all input blocked")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
             }
-            .font(.caption)
-            .foregroundColor(.secondary)
+
+            Spacer().frame(height: 20)
 
             Button(action: { viewModel.cancelSession() }) {
-                Text("Cancel Lock")
+                Text("cancel")
+                    .font(.system(size: 12, weight: .medium))
                     .frame(maxWidth: .infinity)
+                    .frame(height: 36)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
-            .controlSize(.large)
-            .padding(.horizontal)
+            .buttonStyle(.plain)
+            .focusable(false)
+            .background(Color.red.opacity(0.1))
+            .foregroundColor(.red)
+            .cornerRadius(8)
+            .padding(.horizontal, 20)
 
-            Text("or hold ⌘⌥⌃L for 3 seconds")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-
-            Spacer().frame(height: 8)
+            Text("⌘⌥⌃L  hold 3s")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(.secondary.opacity(0.5))
+                .padding(.top, 10)
+                .padding(.bottom, 16)
         }
-        .padding()
     }
 }
 
@@ -261,201 +282,298 @@ struct ActiveSessionView: View {
 
 struct IdleView: View {
     @ObservedObject var viewModel: MenuBarViewModel
-    @State private var showSettings = false
+    @FocusState private var isDurationFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                Image(systemName: "lock.open.fill")
-                    .foregroundColor(.secondary)
-                Text("CleanLock")
-                    .font(.headline)
-                Spacer()
-                Button(action: { showSettings.toggle() }) {
-                    Image(systemName: "gearshape")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
-
             // Accessibility warning
             if !viewModel.hasAccessibility {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    Text("Accessibility permission required")
-                        .font(.caption)
+                Button(action: { InputBlocker.requestAccessibility() }) {
+                    HStack(spacing: 6) {
+                        Circle().fill(.orange).frame(width: 6, height: 6)
+                        Text("grant accessibility")
+                            .font(.system(size: 11))
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 9))
+                    }
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+            .focusable(false)
+                Divider().padding(.horizontal, 16)
+            }
+
+            // Duration input area
+            VStack(spacing: 8) {
+                HStack {
+                    Image(systemName: "infinity")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                    Text("indefinite")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
                     Spacer()
-                    Button("Grant") {
-                        InputBlocker.requestAccessibility()
-                    }
-                    .font(.caption)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    Toggle("", isOn: Binding(
+                        get: { viewModel.isInfiniteMode },
+                        set: { val in
+                            withAnimation { viewModel.isInfiniteMode = val }
+                            if val { viewModel.durationInput = "" }
+                        }
+                    ))
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .labelsHidden()
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-            }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
 
-            Divider()
+                if viewModel.isInfiniteMode {
+                    Text("∞")
+                        .font(.system(size: 48, weight: .ultraLight, design: .monospaced))
+                        .foregroundColor(.secondary.opacity(0.3))
+                        .frame(height: 56)
 
-            // Quick durations
-            VStack(spacing: 8) {
-                Text("Quick Start")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("until cancelled  ·  safety: 5m")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(0.5))
+                } else {
+                    TextField("0", text: $viewModel.durationInput)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 48, weight: .ultraLight, design: .monospaced))
+                        .multilineTextAlignment(.center)
+                        .frame(height: 56)
+                        .focused($isDurationFocused)
+                        .padding(.horizontal, 20)
+                        .onChange(of: viewModel.durationInput) { _ in
+                            viewModel.filterDigits(&viewModel.durationInput)
+                        }
 
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                    QuickButton(label: "30s", seconds: 30, viewModel: viewModel)
-                    QuickButton(label: "1m", seconds: 60, viewModel: viewModel)
-                    QuickButton(label: "2m", seconds: 120, viewModel: viewModel)
-                    QuickButton(label: "5m", seconds: 300, viewModel: viewModel)
-                    QuickButton(label: "10m", seconds: 600, viewModel: viewModel)
-                    QuickButton(label: "∞", seconds: nil, viewModel: viewModel)
+                    Text("seconds")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(0.5))
                 }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 10)
 
-            Divider()
-
-            // Custom duration
-            VStack(spacing: 8) {
-                Text("Custom Duration")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack(spacing: 8) {
-                    HStack(spacing: 4) {
-                        TextField("0", text: $viewModel.customMinutes)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 44)
-                            .multilineTextAlignment(.center)
-                        Text("min")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    HStack(spacing: 4) {
-                        TextField("0", text: $viewModel.customSeconds)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 44)
-                            .multilineTextAlignment(.center)
-                        Text("sec")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    Button("Start") {
-                        viewModel.startCustomSession()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                // Start button
+                Button(action: { viewModel.startSession() }) {
+                    Text("start")
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
                 }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 10)
-
-            // Settings (collapsible)
-            if showSettings {
-                Divider()
-                SettingsSection(viewModel: viewModel)
+                .buttonStyle(.plain)
+            .focusable(false)
+                .background(Color.accentColor.opacity(0.1))
+                .foregroundColor(.accentColor)
+                .cornerRadius(8)
+                .padding(.horizontal, 20)
             }
 
-            Divider()
-
-            // Footer
-            Button("Quit CleanLock") {
-                NSApp.terminate(nil)
+            // Preset buttons — fill input only, don't start
+            HStack(spacing: 0) {
+                PresetButton(label: "30s", seconds: 30, viewModel: viewModel)
+                PresetButton(label: "1m", seconds: 60, viewModel: viewModel)
+                PresetButton(label: "2m", seconds: 120, viewModel: viewModel)
+                PresetButton(label: "5m", seconds: 300, viewModel: viewModel)
+                PresetButton(label: "10m", seconds: 600, viewModel: viewModel)
             }
-            .font(.caption)
-            .foregroundColor(.secondary)
+            .padding(.horizontal, 20)
+            .padding(.top, 6)
+            .padding(.bottom, 12)
+
+            // Settings
+            Divider().padding(.horizontal, 16)
+
+            Button(action: { withAnimation { viewModel.showSettings.toggle() } }) {
+                HStack {
+                    Text("settings")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary.opacity(0.4))
+                        .rotationEffect(.degrees(viewModel.showSettings ? 90 : 0))
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+            }
             .buttonStyle(.plain)
-            .padding(.vertical, 8)
+            .focusable(false)
+
+            if viewModel.showSettings {
+                Divider().padding(.horizontal, 16)
+                SettingsSection(viewModel: viewModel)
+                Divider().padding(.horizontal, 16)
+                AboutSection()
+            }
+
+            Divider().padding(.horizontal, 16)
+
+            Button(action: { NSApp.terminate(nil) }) {
+                Text("quit cleanlock")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+            .padding(.bottom, 4)
         }
     }
 }
 
-// MARK: - Settings Section
+// MARK: - Settings
 
 struct SettingsSection: View {
     @ObservedObject var viewModel: MenuBarViewModel
 
     var body: some View {
-        VStack(spacing: 10) {
-            Text("Settings")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(spacing: 8) {
+            SettingToggle(label: "keyboard only", isOn: $viewModel.keyboardOnly)
+            SettingToggle(label: "show overlay", isOn: $viewModel.showOverlay)
+            SettingToggle(label: "dim screen", isOn: $viewModel.dimEnabled)
+            SettingToggle(label: "silent", isOn: $viewModel.silentEnabled)
+            SettingToggle(label: "show timer in menu bar", isOn: $viewModel.showTimerInMenuBar)
 
-            // Toggles
-            VStack(spacing: 6) {
-                Toggle("Keyboard only (don't block trackpad)", isOn: $viewModel.keyboardOnly)
-                Toggle("Show overlay", isOn: $viewModel.showOverlay)
-                Toggle("Dim screen", isOn: $viewModel.dimEnabled)
-                Toggle("Silent mode", isOn: $viewModel.silentEnabled)
-            }
-            .font(.caption)
-
-            // Delay
             HStack {
-                Text("Delay before lock:")
-                    .font(.caption)
+                Text("delay")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
                 Spacer()
                 TextField("0", text: $viewModel.delaySeconds)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 40)
+                    .textFieldStyle(.plain)
+                    .frame(width: 28)
                     .multilineTextAlignment(.center)
+                    .font(.system(size: 11, design: .monospaced))
+                    .padding(3)
+                    .background(Color.primary.opacity(0.04))
+                    .cornerRadius(4)
+                    .onChange(of: viewModel.delaySeconds) { _ in
+                        viewModel.filterDigits(&viewModel.delaySeconds)
+                    }
                 Text("sec")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary.opacity(0.4))
             }
 
-            // Overlay color
             HStack {
-                Text("Overlay color:")
-                    .font(.caption)
+                Text("color")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
                 Spacer()
-                Picker("", selection: $viewModel.selectedColor) {
+                HStack(spacing: 4) {
                     ForEach(OverlayColor.allCases) { color in
-                        HStack(spacing: 6) {
+                        Button(action: { viewModel.selectedColor = color }) {
                             Circle()
                                 .fill(color.preview)
-                                .frame(width: 10, height: 10)
+                                .frame(width: 16, height: 16)
                                 .overlay(
-                                    Circle().stroke(Color.gray.opacity(0.3), lineWidth: 0.5)
+                                    Circle().stroke(
+                                        viewModel.selectedColor == color
+                                            ? Color.accentColor
+                                            : Color.primary.opacity(0.1),
+                                        lineWidth: viewModel.selectedColor == color ? 2 : 0.5
+                                    )
                                 )
-                            Text(color.rawValue)
                         }
-                        .tag(color)
+                        .buttonStyle(.plain)
+            .focusable(false)
                     }
                 }
-                .frame(width: 120)
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
         .padding(.vertical, 10)
     }
 }
 
-// MARK: - Quick Button
+// MARK: - About
 
-struct QuickButton: View {
+struct AboutSection: View {
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 4) {
+                Text("Built with")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary.opacity(0.5))
+                Text("❤️")
+                    .font(.system(size: 9))
+                Text("for")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary.opacity(0.5))
+                Image(systemName: "laptopcomputer")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary.opacity(0.5))
+                Text("users")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary.opacity(0.5))
+            }
+
+            HStack(spacing: 5) {
+                Link(destination: URL(string: "https://github.com/ugurcandede")!) {
+                    Text("ugurcandede")
+                        .font(.system(size: 10, weight: .medium))
+                }
+
+                Text("·")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary.opacity(0.3))
+
+                Link(destination: URL(string: "https://github.com/ugurcandede/cleanlock")!) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "tag")
+                            .font(.system(size: 8))
+                        Text("v0.1.0")
+                            .font(.system(size: 10))
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 10)
+    }
+}
+
+// MARK: - Components
+
+struct SettingToggle: View {
     let label: String
-    let seconds: Int?
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+            Spacer()
+            Toggle("", isOn: $isOn)
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .labelsHidden()
+        }
+    }
+}
+
+struct PresetButton: View {
+    let label: String
+    let seconds: Int
     let viewModel: MenuBarViewModel
 
     var body: some View {
-        Button(action: { viewModel.startSession(duration: seconds) }) {
+        Button(action: { viewModel.applyPreset(seconds: seconds) }) {
             Text(label)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 32)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.plain)
+            .focusable(false)
     }
 }
