@@ -2,6 +2,13 @@
   <img src="docs/assets/images/icon.png" alt="TapLock" width="80">
   <h1>TapLock App</h1>
   <p>Menu bar app to temporarily disable keyboard and trackpad input on your Mac.</p>
+  <br>
+  <a href="https://github.com/ugurcandede/taplock-app/releases/latest"><img src="https://img.shields.io/github/v/release/ugurcandede/taplock-app?label=version&style=flat-square" alt="Version"></a>
+  <a href="https://github.com/ugurcandede/taplock-app/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/ugurcandede/taplock-app/build.yml?style=flat-square" alt="Build"></a>
+  <br>
+  <img src="https://img.shields.io/badge/macOS-13.0%2B-000?style=flat-square&logo=apple&logoColor=white" alt="macOS">
+  <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Source%20Available-lightgrey?style=flat-square" alt="License"></a>
 </div>
 
 ---

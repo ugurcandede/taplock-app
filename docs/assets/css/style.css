@@ -25,7 +25,7 @@ body {
 }
 
 .container {
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -116,7 +116,7 @@ nav a:hover {
 .hero p {
   font-size: 1.2em;
   color: var(--text-secondary);
-  max-width: 520px;
+  max-width: 650px;
   margin: 0 auto 32px;
 }
 

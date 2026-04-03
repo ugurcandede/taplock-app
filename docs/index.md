@@ -6,7 +6,15 @@ title: Home
 <div class="hero">
   <img src="assets/images/icon.png" alt="TapLock" class="hero-icon">
   <h1>TapLock</h1>
-  <p>Temporarily disable keyboard and trackpad input on your Mac. No root required.</p>
+  <p style="margin-bottom: 0 !important;">Temporarily disable keyboard and trackpad input on your Mac.</p>
+  <p><strong>No root required.</strong></p>
+
+  <div style="margin: 16px 0 24px; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
+    <a href="https://github.com/ugurcandede/taplock/releases/latest"><img src="https://img.shields.io/github/v/release/ugurcandede/taplock?label=CLI&style=flat-square" alt="CLI Version" height="20"></a>
+    <a href="https://github.com/ugurcandede/taplock-app/releases/latest"><img src="https://img.shields.io/github/v/release/ugurcandede/taplock-app?label=App&style=flat-square" alt="App Version" height="20"></a>
+    <a href="https://support.apple.com/en-us/109033"><img src="https://img.shields.io/badge/macOS-13.0%2B-000?style=flat-square&logo=apple&logoColor=white" alt="macOS" height="20"></a>
+    <a href="https://www.swift.org/install/macos/"><img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift" height="20"></a>
+  </div>
 
   <div class="hero-install">
     <span class="comment"># Install via Homebrew</span><br>

@@ -35,8 +35,16 @@
   <footer>
     <div class="container">
       Built with ❤️ for Mac users<br>
-      <a href="https://github.com/ugurcandede">ugurcandede</a> · <a href="https://github.com/ugurcandede/taplock">CLI</a> · <a href="https://github.com/ugurcandede/taplock-app">App</a>
+      <a href="https://github.com/ugurcandede" target="_blank">ugurcandede</a> · <a href="https://github.com/ugurcandede/taplock" target="_blank">CLI</a> · <a href="https://github.com/ugurcandede/taplock-app" target="_blank">App</a>
     </div>
   </footer>
+  <script>
+    document.querySelectorAll('a[href^="http"]').forEach(a => {
+      if (!a.hostname || a.hostname !== location.hostname) {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener');
+      }
+    });
+  </script>
 </body>
 </html>
