@@ -96,3 +96,19 @@ jobs:
             Or download `TapLock-macos.zip`, extract, and move `TapLock.app` to Applications.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew cask
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/ugurcandede/homebrew-taplock.git /tmp/homebrew-taplock
+          cd /tmp/homebrew-taplock
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i '' "s|version \".*\"|version \"${VERSION}\"|" Casks/taplock-app.rb
+          sed -i '' "s|sha256 \".*\"|sha256 \"${SHA256}\"|" Casks/taplock-app.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/taplock-app.rb
+          git commit -m "Update taplock-app cask to v${VERSION}"
+          git push
