@@ -2,7 +2,7 @@
 
 import Cocoa
 
-// Generate a clean lock icon for CleanLock app
+// Generate a clean lock icon for TapLock app
 // Rounded rect background with SF Symbol lock
 
 let size: CGFloat = 1024

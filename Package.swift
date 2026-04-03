@@ -3,18 +3,18 @@
 import PackageDescription
 
 let package = Package(
-    name: "CleanLockApp",
+    name: "TapLockApp",
     platforms: [
         .macOS(.v13)
     ],
     dependencies: [
-        .package(path: "deps/cleanlock")
+        .package(path: "deps/taplock")
     ],
     targets: [
         .executableTarget(
-            name: "CleanLockApp",
+            name: "TapLockApp",
             dependencies: [
-                .product(name: "CleanLockCore", package: "cleanlock")
+                .product(name: "TapLockCore", package: "taplock")
             ],
             exclude: ["Info.plist"],
             swiftSettings: [

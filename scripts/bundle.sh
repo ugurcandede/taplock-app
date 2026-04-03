@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-BINARY_PATH="${1:-.build/release/CleanLockApp}"
-APP_NAME="CleanLock"
+BINARY_PATH="${1:-.build/release/TapLockApp}"
+APP_NAME="TapLock"
 BUNDLE_DIR="${APP_NAME}.app"
-PLIST_SRC="Sources/CleanLockApp/Info.plist"
+PLIST_SRC="Sources/TapLockApp/Info.plist"
 ICON_SRC="Resources/AppIcon.icns"
 
 echo "Creating ${BUNDLE_DIR}..."
@@ -14,7 +14,7 @@ rm -rf "${BUNDLE_DIR}"
 mkdir -p "${BUNDLE_DIR}/Contents/MacOS"
 mkdir -p "${BUNDLE_DIR}/Contents/Resources"
 
-cp "${BINARY_PATH}" "${BUNDLE_DIR}/Contents/MacOS/CleanLockApp"
+cp "${BINARY_PATH}" "${BUNDLE_DIR}/Contents/MacOS/TapLockApp"
 cp "${PLIST_SRC}" "${BUNDLE_DIR}/Contents/Info.plist"
 
 if [ -f "${ICON_SRC}" ]; then

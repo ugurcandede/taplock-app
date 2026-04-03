@@ -1,6 +1,6 @@
 import Cocoa
 import SwiftUI
-import CleanLockCore
+import TapLockCore
 
 // MARK: - Menu Bar Controller
 
@@ -22,7 +22,7 @@ final class MenuBarController {
         popover.contentViewController = hostingController
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "lock.open.fill", accessibilityDescription: "CleanLock")
+            button.image = NSImage(systemSymbolName: "lock.open.fill", accessibilityDescription: "TapLock")
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -54,7 +54,7 @@ final class MenuBarController {
         let symbolName = isActive ? "lock.fill" : "lock.open.fill"
         statusItem.button?.image = NSImage(
             systemSymbolName: symbolName,
-            accessibilityDescription: "CleanLock"
+            accessibilityDescription: "TapLock"
         )
 
         menuBarTimer?.invalidate()
@@ -99,7 +99,7 @@ final class MenuBarViewModel: ObservableObject {
     var onSessionStateChanged: ((Bool) -> Void)?
     var onLockStarted: (() -> Void)?
     var onPopoverClose: (() -> Void)?
-    private var session: CleanLockSession?
+    private var session: TapLockSession?
     private var countdownTimer: Timer?
     private var delayTimer: Timer?
     private let maxSafetyDuration = 300
@@ -161,7 +161,7 @@ final class MenuBarViewModel: ObservableObject {
             overlayColor: selectedColor.rgb
         )
 
-        session = CleanLockSession(config: config)
+        session = TapLockSession(config: config)
         session?.onEnd = { [weak self] in
             self?.sessionEnded()
         }
@@ -511,7 +511,7 @@ struct IdleView: View {
             Divider().padding(.horizontal, 16)
 
             Button(action: { NSApp.terminate(nil) }) {
-                Text("quit cleanlock")
+                Text("quit taplock")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
@@ -622,7 +622,7 @@ struct AboutSection: View {
                     .font(.system(size: 10))
                     .foregroundColor(.secondary.opacity(0.3))
 
-                Link(destination: URL(string: "https://github.com/ugurcandede/cleanlock")!) {
+                Link(destination: URL(string: "https://github.com/ugurcandede/taplock")!) {
                     HStack(spacing: 3) {
                         Image(systemName: "tag")
                             .font(.system(size: 8))

@@ -1,4 +1,4 @@
-[submodule "deps/cleanlock"]
-	path = deps/cleanlock
-	url = https://github.com/ugurcandede/cleanlock.git
+[submodule "deps/taplock"]
+	path = deps/taplock
+	url = https://github.com/ugurcandede/taplock.git
 	branch = main

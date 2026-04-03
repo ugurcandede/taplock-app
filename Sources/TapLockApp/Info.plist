@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>CleanLock</string>
+    <string>TapLock</string>
     <key>CFBundleDisplayName</key>
-    <string>CleanLock</string>
+    <string>TapLock</string>
     <key>CFBundleIdentifier</key>
-    <string>com.ugurcandede.cleanlock</string>
+    <string>com.ugurcandede.taplock</string>
     <key>CFBundleVersion</key>
     <string>0.1.0</string>
     <key>CFBundleShortVersionString</key>
@@ -15,7 +15,7 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>CleanLockApp</string>
+    <string>TapLockApp</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIconName</key>
@@ -25,6 +25,6 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSAccessibilityUsageDescription</key>
-    <string>CleanLock needs Accessibility permission to block keyboard and trackpad input during cleaning.</string>
+    <string>TapLock needs Accessibility permission to block keyboard and trackpad input during cleaning.</string>
 </dict>
 </plist>

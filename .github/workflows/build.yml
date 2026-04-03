@@ -21,7 +21,7 @@ jobs:
       - name: Update submodule to latest main
         run: |
           git submodule update --remote --merge
-          echo "Submodule commit: $(git -C deps/cleanlock rev-parse HEAD)"
+          echo "Submodule commit: $(git -C deps/taplock rev-parse HEAD)"
 
       - name: Determine version
         id: version
@@ -39,7 +39,7 @@ jobs:
       - name: Inject version into Info.plist
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          sed -i '' "s|<string>0.1.0</string>|<string>${VERSION}</string>|g" Sources/CleanLockApp/Info.plist
+          sed -i '' "s|<string>0.1.0</string>|<string>${VERSION}</string>|g" Sources/TapLockApp/Info.plist
 
       - name: Build arm64
         run: swift build -c release --arch arm64
@@ -50,23 +50,23 @@ jobs:
       - name: Create universal binary
         run: |
           lipo -create \
-            .build/arm64-apple-macosx/release/CleanLockApp \
-            .build/x86_64-apple-macosx/release/CleanLockApp \
-            -output CleanLockApp-universal
+            .build/arm64-apple-macosx/release/TapLockApp \
+            .build/x86_64-apple-macosx/release/TapLockApp \
+            -output TapLockApp-universal
 
       - name: Create .app bundle
         run: |
-          APP="CleanLock.app"
+          APP="TapLock.app"
           mkdir -p "${APP}/Contents/MacOS"
           mkdir -p "${APP}/Contents/Resources"
-          cp CleanLockApp-universal "${APP}/Contents/MacOS/CleanLockApp"
-          cp Sources/CleanLockApp/Info.plist "${APP}/Contents/Info.plist"
+          cp TapLockApp-universal "${APP}/Contents/MacOS/TapLockApp"
+          cp Sources/TapLockApp/Info.plist "${APP}/Contents/Info.plist"
           cp Resources/AppIcon.icns "${APP}/Contents/Resources/AppIcon.icns"
 
       - name: Package
         run: |
-          zip -r CleanLock-macos.zip CleanLock.app
-          SHA256=$(shasum -a 256 CleanLock-macos.zip | awk '{print $1}')
+          zip -r TapLock-macos.zip TapLock.app
+          SHA256=$(shasum -a 256 TapLock-macos.zip | awk '{print $1}')
           echo "SHA256=$SHA256" >> $GITHUB_ENV
 
       - name: Create tag
@@ -80,19 +80,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: CleanLock App ${{ steps.version.outputs.tag }}
+          name: TapLock App ${{ steps.version.outputs.tag }}
           generate_release_notes: true
           files: |
-            CleanLock-macos.zip
+            TapLock-macos.zip
           body: |
             **SHA256:** `${{ env.SHA256 }}`
 
             ### Install
             ```bash
-            brew tap ugurcandede/cleanlock
-            brew install --cask cleanlock-app
+            brew tap ugurcandede/taplock
+            brew install --cask taplock-app
             ```
 
-            Or download `CleanLock-macos.zip`, extract, and move `CleanLock.app` to Applications.
+            Or download `TapLock-macos.zip`, extract, and move `TapLock.app` to Applications.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

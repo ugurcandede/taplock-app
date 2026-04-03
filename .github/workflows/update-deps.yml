@@ -2,7 +2,7 @@ name: Update Dependencies
 
 on:
   repository_dispatch:
-    types: [cleanlock-updated]
+    types: [taplock-updated]
   workflow_dispatch:
 
 jobs:
@@ -20,19 +20,19 @@ jobs:
       - name: Update submodule to latest main
         run: |
           git submodule update --remote --merge
-          NEW_COMMIT=$(git -C deps/cleanlock rev-parse --short HEAD)
-          echo "Updated cleanlock submodule to: $NEW_COMMIT"
+          NEW_COMMIT=$(git -C deps/taplock rev-parse --short HEAD)
+          echo "Updated taplock submodule to: $NEW_COMMIT"
           echo "NEW_COMMIT=$NEW_COMMIT" >> $GITHUB_ENV
 
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add deps/cleanlock
+          git add deps/taplock
           if git diff --cached --quiet; then
             echo "Submodule already up to date"
           else
-            git commit -m "Update cleanlock submodule to ${{ env.NEW_COMMIT }}
+            git commit -m "Update taplock submodule to ${{ env.NEW_COMMIT }}
 
           [skip ci]"
             git push

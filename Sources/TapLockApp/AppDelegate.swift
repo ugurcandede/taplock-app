@@ -1,5 +1,5 @@
 import Cocoa
-import CleanLockCore
+import TapLockCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
