@@ -210,12 +210,14 @@ nav a:hover {
   border-radius: var(--radius);
   box-shadow: var(--card-shadow);
   max-width: 220px;
-  height: auto;
+  height: auto !important;
+  object-fit: contain;
 }
 
 .screenshot-full {
   margin: 0 auto;
   max-width: 100%;
+  height: auto !important;
   border-radius: var(--radius);
   box-shadow: var(--card-shadow);
 }
