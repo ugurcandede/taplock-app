@@ -19,6 +19,12 @@ Menu bar app for [TapLock](https://github.com/ugurcandede/taplock) — temporari
 - Optional countdown timer in menu bar
 - Emergency cancel: hold **Cmd+Option+Ctrl+L** for 3 seconds
 
+## Screenshots
+
+| Indefinite Mode | Custom Duration | Settings | Lock Screen |
+|:---:|:---:|:---:|:---:|
+| ![Indefinite](screenshots/app-infinite.png) | ![Seconds](screenshots/app-seconds.png) | ![Settings](screenshots/settings.png) | ![Lock](screenshots/lock-screen.png) |
+
 ## Install
 
 ### Homebrew
