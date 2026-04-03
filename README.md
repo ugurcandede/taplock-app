@@ -64,4 +64,4 @@ This app depends on `TapLockCore` from the taplock package:
 
 ## License
 
-MIT
+Source Available — free to use, not to modify or redistribute. See [LICENSE](LICENSE).
