@@ -32,8 +32,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Submodule already up to date"
           else
-            git commit -m "Update taplock submodule to ${{ env.NEW_COMMIT }}
-
-          [skip ci]"
+            git commit -m "Update taplock submodule to ${{ env.NEW_COMMIT }}"
             git push
           fi
