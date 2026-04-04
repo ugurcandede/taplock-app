@@ -75,6 +75,10 @@ jobs:
           cp Sources/TapLockApp/Info.plist "${APP}/Contents/Info.plist"
           cp Resources/AppIcon.icns "${APP}/Contents/Resources/AppIcon.icns"
 
+      - name: Sign app bundle
+        run: |
+          codesign --force --deep --sign - --identifier com.ugurcandede.taplock TapLock.app
+
       - name: Package
         run: |
           zip -r TapLock-macos.zip TapLock.app
