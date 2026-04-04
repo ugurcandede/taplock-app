@@ -1,4 +1,5 @@
 import Cocoa
+import ServiceManagement
 import SwiftUI
 import TapLockCore
 
@@ -146,6 +147,7 @@ final class MenuBarViewModel: ObservableObject {
     @Published var showTimerInMenuBar = false
     @Published var selectedColor: OverlayColor = .black
     @Published var showSettings = false
+    @Published var launchAtLogin: Bool = SMAppService.mainApp.status == .enabled
     @Published var lastError: String? = nil
 
     // Mode
@@ -280,6 +282,15 @@ final class MenuBarViewModel: ObservableObject {
 
     func filterDigits(_ value: inout String) {
         value = value.filter { $0.isNumber }
+    }
+
+    func toggleLaunchAtLogin(_ enabled: Bool) {
+        if enabled {
+            try? SMAppService.mainApp.register()
+        } else {
+            try? SMAppService.mainApp.unregister()
+        }
+        launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
     private func sessionEnded() {
@@ -812,6 +823,10 @@ struct SettingsSection: View {
 
     var body: some View {
         VStack(spacing: 8) {
+            SettingToggle(label: "launch at login", isOn: Binding(
+                get: { viewModel.launchAtLogin },
+                set: { viewModel.toggleLaunchAtLogin($0) }
+            ))
             SettingToggle(label: "keyboard only", isOn: $viewModel.keyboardOnly)
             SettingToggle(label: "show overlay", isOn: $viewModel.showOverlay)
             SettingToggle(label: "dim screen", isOn: $viewModel.dimEnabled)
@@ -993,6 +1008,10 @@ struct RelaxSettingsSection: View {
             ColorPickerRow(label: "color", selection: $viewModel.relaxColor, colors: OverlayColor.allCases)
             TransparencyPickerRow(label: "transparency", selection: $viewModel.relaxTransparency)
 
+            SettingToggle(label: "launch at login", isOn: Binding(
+                get: { viewModel.launchAtLogin },
+                set: { viewModel.toggleLaunchAtLogin($0) }
+            ))
             SettingToggle(label: "silent", isOn: $viewModel.relaxSilent)
             SettingToggle(label: "show timer in menu bar", isOn: $viewModel.relaxShowTimerInMenuBar)
         }
