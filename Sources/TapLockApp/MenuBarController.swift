@@ -730,7 +730,7 @@ struct AboutSection: View {
                     .font(.system(size: 10))
                     .foregroundColor(.secondary.opacity(0.3))
 
-                Link(destination: URL(string: "https://github.com/ugurcandede/taplock")!) {
+                Link(destination: URL(string: "https://github.com/ugurcandede/taplock-app")!) {
                     HStack(spacing: 3) {
                         Image(systemName: "tag")
                             .font(.system(size: 8))
