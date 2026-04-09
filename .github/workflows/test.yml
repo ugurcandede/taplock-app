@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Update submodule
+        run: git submodule update --remote --merge
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Run tests
+        run: swift test
