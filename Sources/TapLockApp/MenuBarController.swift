@@ -163,6 +163,7 @@ final class MenuBarViewModel: ObservableObject {
     @Published var relaxTransparency: TransparencyPreset = .light
     @Published var relaxSilent: Bool = false
     @Published var relaxShowTimerInMenuBar: Bool = false
+    @Published var relaxShowPostureReminder: Bool = true
 
     // Relax active state
     @Published var isRelaxWaiting: Bool = false
@@ -334,7 +335,8 @@ final class MenuBarViewModel: ObservableObject {
             theme: relaxTheme,
             color: relaxColor.colorName,
             opacity: relaxTransparency.rawValue,
-            silent: relaxSilent
+            silent: relaxSilent,
+            showPostureReminder: relaxShowPostureReminder
         )
 
         // Save config
@@ -438,6 +440,48 @@ final class MenuBarViewModel: ObservableObject {
         if let color = OverlayColor.fromColorName(config.color) {
             relaxColor = color
         }
+        relaxShowPostureReminder = config.showPostureReminder
+    }
+
+    // MARK: - Previews
+
+    private var previewWindow: RelaxingWindowController?
+    private var previewPosture: PostureWindowController?
+    private var previewDismissTimer: Timer?
+
+    func previewTheme() {
+        dismissPreview()
+        let color = relaxColor.rgb
+        previewWindow = RelaxingWindowController(
+            duration: 99,
+            theme: relaxTheme,
+            color: (r: color.r, g: color.g, b: color.b),
+            opacity: relaxTransparency.rawValue
+        )
+        previewWindow?.onSkip = { [weak self] in self?.dismissPreview() }
+        previewWindow?.showOverlay()
+        previewDismissTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+            self?.dismissPreview()
+        }
+    }
+
+    func previewPostureReminder() {
+        dismissPreview()
+        previewPosture = PostureWindowController()
+        previewPosture?.onDismiss = { [weak self] in self?.dismissPreview() }
+        previewPosture?.showOverlay()
+        previewDismissTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+            self?.dismissPreview()
+        }
+    }
+
+    private func dismissPreview() {
+        previewDismissTimer?.invalidate()
+        previewDismissTimer = nil
+        previewWindow?.closeOverlay()
+        previewWindow = nil
+        previewPosture?.closeOverlay()
+        previewPosture = nil
     }
 
     private func bestUnit(seconds: Int) -> (Int, DurationUnit) {
@@ -996,6 +1040,14 @@ struct RelaxSettingsSection: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 Spacer()
+                Button(action: { viewModel.previewTheme() }) {
+                    Image(systemName: "eye")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Preview theme for 5 seconds")
                 Picker("", selection: $viewModel.relaxTheme) {
                     ForEach(RelaxTheme.allCases, id: \.self) { theme in
                         Text(theme.rawValue).tag(theme)
@@ -1014,6 +1066,24 @@ struct RelaxSettingsSection: View {
             ))
             SettingToggle(label: "silent", isOn: $viewModel.relaxSilent)
             SettingToggle(label: "show timer in menu bar", isOn: $viewModel.relaxShowTimerInMenuBar)
+            HStack {
+                Text("posture reminder")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button(action: { viewModel.previewPostureReminder() }) {
+                    Image(systemName: "eye")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Preview posture reminder")
+                Toggle("", isOn: $viewModel.relaxShowPostureReminder)
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .labelsHidden()
+            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
