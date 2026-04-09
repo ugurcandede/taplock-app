@@ -53,6 +53,9 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           sed -i '' "s|<string>0.1.0</string>|<string>${VERSION}</string>|g" Sources/TapLockApp/Info.plist
 
+      - name: Run tests
+        run: swift test
+
       - name: Build arm64
         run: swift build -c release --arch arm64
 
