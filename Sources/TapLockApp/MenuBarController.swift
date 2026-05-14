@@ -931,12 +931,12 @@ struct StatsDropdownSection: View {
     let mode: AppMode
 
     var body: some View {
-        VStack(spacing: 8) {
-            // Period picker
+        VStack(spacing: 6) {
+            // Period picker — styled as the first row in the metric list
             HStack {
                 Text("period")
                     .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.secondary.opacity(0.7))
                 Spacer()
                 Menu {
                     ForEach(StatsPeriodKind.menubarOptions) { p in
@@ -946,19 +946,13 @@ struct StatsDropdownSection: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 4) {
-                        Text(viewModel.statsPeriod.label)
-                            .font(.system(size: 10, design: .monospaced))
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 8))
-                    }
-                    .foregroundColor(.secondary)
+                    Text(viewModel.statsPeriod.label)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.secondary)
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
             }
-
-            Divider().padding(.vertical, 2)
 
             // Mode-aware metrics
             if mode == .lock {

@@ -37,49 +37,42 @@ struct StatisticsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 14) {
-                Picker("", selection: $selectedMode) {
+            // Header — all filters on one row
+            HStack(spacing: 14) {
+                Picker("Mode", selection: $selectedMode) {
                     Label("Lock", systemImage: "lock.fill").tag(AppMode.lock)
                     Label("Relax", systemImage: "leaf.fill").tag(AppMode.relax)
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
 
-                HStack(spacing: 12) {
-                    Text("Period")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-
-                    Picker("", selection: $viewModel.statsPeriod) {
-                        ForEach(StatsPeriodKind.allCases) { p in
-                            Text(p.label).tag(p)
-                        }
+                Picker("Period", selection: $viewModel.statsPeriod) {
+                    ForEach(StatsPeriodKind.allCases) { p in
+                        Text(p.label).tag(p)
                     }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .fixedSize()
-                    .onChange(of: viewModel.statsPeriod) { _ in
-                        viewModel.loadStatsSummary()
-                    }
-
-                    if viewModel.statsPeriod == .custom {
-                        DatePicker("", selection: $viewModel.statsCustomStart, displayedComponents: .date)
-                            .labelsHidden()
-                            .onChange(of: viewModel.statsCustomStart) { _ in
-                                viewModel.loadStatsSummary()
-                            }
-                        Text("→")
-                            .foregroundColor(.secondary)
-                        DatePicker("", selection: $viewModel.statsCustomEnd, displayedComponents: .date)
-                            .labelsHidden()
-                            .onChange(of: viewModel.statsCustomEnd) { _ in
-                                viewModel.loadStatsSummary()
-                            }
-                    }
-
-                    Spacer()
                 }
+                .pickerStyle(.menu)
+                .fixedSize()
+                .onChange(of: viewModel.statsPeriod) { _ in
+                    viewModel.loadStatsSummary()
+                }
+
+                if viewModel.statsPeriod == .custom {
+                    DatePicker("", selection: $viewModel.statsCustomStart, displayedComponents: .date)
+                        .labelsHidden()
+                        .onChange(of: viewModel.statsCustomStart) { _ in
+                            viewModel.loadStatsSummary()
+                        }
+                    Text("→")
+                        .foregroundColor(.secondary)
+                    DatePicker("", selection: $viewModel.statsCustomEnd, displayedComponents: .date)
+                        .labelsHidden()
+                        .onChange(of: viewModel.statsCustomEnd) { _ in
+                            viewModel.loadStatsSummary()
+                        }
+                }
+
+                Spacer()
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)

@@ -104,9 +104,10 @@ public enum StatsPeriodKind: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Periods exposed in the compact menubar picker (excludes custom — that's window-only).
+    /// Periods exposed in the compact menubar picker. Detailed periods (yesterday,
+    /// month/year ranges, all time, custom) live in the Statistics window only.
     public static var menubarOptions: [StatsPeriodKind] {
-        allCases.filter { $0 != .custom }
+        [.today, .thisWeek, .lastWeek]
     }
 }
 
