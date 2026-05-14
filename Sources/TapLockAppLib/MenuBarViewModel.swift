@@ -43,10 +43,18 @@ public final class MenuBarViewModel: ObservableObject {
     @Published public var isOnBreak: Bool = false
     @Published public var relaxRemainingSeconds: Int = 0
 
+    // Stats — shared between the menubar dropdown and the Statistics window.
+    @Published public var showStats: Bool = false
+    @Published public var statsPeriod: StatsPeriodKind = .today
+    @Published public var statsCustomStart: Date = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+    @Published public var statsCustomEnd: Date = Date()
+    @Published public var statsSummary: StatsSummary = .empty
+
     public var onSessionStateChanged: ((Bool) -> Void)?
     public var onLockStarted: (() -> Void)?
     public var onPopoverClose: (() -> Void)?
     public var onModeChanged: (() -> Void)?
+    public var onOpenStatistics: (() -> Void)?
     private var session: TapLockSession?
     private var countdownTimer: Timer?
     private var delayTimer: Timer?
@@ -179,6 +187,7 @@ public final class MenuBarViewModel: ObservableObject {
         delayTimer?.invalidate()
         delayTimer = nil
         session = nil
+        loadStatsSummary()
         onSessionStateChanged?(false)
         onPopoverClose?()
     }
@@ -253,6 +262,7 @@ public final class MenuBarViewModel: ObservableObject {
         relaxCountdownTimer?.invalidate()
         relaxCountdownTimer = nil
         relaxSession = nil
+        loadStatsSummary()
         onSessionStateChanged?(false)
         onPopoverClose?()
     }
@@ -299,6 +309,64 @@ public final class MenuBarViewModel: ObservableObject {
         relaxIntervalUnit = .minutes
         relaxBreakDuration = "\(breakDur)"
         relaxBreakUnit = .minutes
+    }
+
+    /// Resolve the currently-selected period into a date interval.
+    /// Returns nil for `.allTime`, meaning "no filter — include all events".
+    public func currentStatsInterval(calendar: Calendar = .current) -> DateInterval? {
+        let now = Date()
+        switch statsPeriod {
+        case .today:
+            let start = calendar.startOfDay(for: now)
+            return DateInterval(start: start, end: calendar.date(byAdding: .day, value: 1, to: start) ?? now)
+        case .yesterday:
+            let todayStart = calendar.startOfDay(for: now)
+            let start = calendar.date(byAdding: .day, value: -1, to: todayStart) ?? now
+            return DateInterval(start: start, end: todayStart)
+        case .thisWeek:
+            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: now) else { return nil }
+            return weekInterval
+        case .lastWeek:
+            guard let thisWeek = calendar.dateInterval(of: .weekOfYear, for: now),
+                  let start = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeek.start)
+            else { return nil }
+            return DateInterval(start: start, end: thisWeek.start)
+        case .thisMonth:
+            return calendar.dateInterval(of: .month, for: now)
+        case .lastMonth:
+            guard let thisMonth = calendar.dateInterval(of: .month, for: now),
+                  let start = calendar.date(byAdding: .month, value: -1, to: thisMonth.start)
+            else { return nil }
+            return DateInterval(start: start, end: thisMonth.start)
+        case .thisYear:
+            return calendar.dateInterval(of: .year, for: now)
+        case .lastYear:
+            guard let thisYear = calendar.dateInterval(of: .year, for: now),
+                  let start = calendar.date(byAdding: .year, value: -1, to: thisYear.start)
+            else { return nil }
+            return DateInterval(start: start, end: thisYear.start)
+        case .allTime:
+            return nil
+        case .custom:
+            // Clamp end to start-of-next-day if user picked the same day, so DateInterval
+            // is non-zero and event timestamps fall inside it.
+            let start = calendar.startOfDay(for: statsCustomStart)
+            let endDay = calendar.startOfDay(for: statsCustomEnd)
+            let end = calendar.date(byAdding: .day, value: 1, to: endDay) ?? statsCustomEnd
+            if end <= start { return DateInterval(start: start, end: calendar.date(byAdding: .day, value: 1, to: start) ?? start) }
+            return DateInterval(start: start, end: end)
+        }
+    }
+
+    public func loadStatsSummary() {
+        let store = StatsStore.shared
+        let events: [StatsEvent]
+        if let interval = currentStatsInterval() {
+            events = store.events(in: interval)
+        } else {
+            events = store.allEvents()
+        }
+        statsSummary = StatsSummary.compute(from: events)
     }
 
     public func loadRelaxConfig() {

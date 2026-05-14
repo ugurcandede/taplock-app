@@ -11,6 +11,7 @@ final class MenuBarController {
     private var popover: NSPopover
     private let viewModel = MenuBarViewModel()
     private var menuBarTimer: Timer?
+    private var statisticsWindowController: StatisticsWindowController?
 
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -44,6 +45,18 @@ final class MenuBarController {
         viewModel.onPopoverClose = { [weak self] in
             self?.popover.performClose(nil)
         }
+
+        viewModel.onOpenStatistics = { [weak self] in
+            self?.openStatistics()
+        }
+    }
+
+    private func openStatistics() {
+        if statisticsWindowController == nil {
+            statisticsWindowController = StatisticsWindowController(viewModel: viewModel)
+        }
+        statisticsWindowController?.show()
+        popover.performClose(nil)
     }
 
     @objc private func togglePopover() {
@@ -161,6 +174,7 @@ struct MenuBarView: View {
         }
         .onAppear {
             viewModel.loadRelaxConfig()
+            viewModel.loadStatsSummary()
             DispatchQueue.main.async {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             }
@@ -347,6 +361,14 @@ struct IdleView: View {
             .padding(.top, 6)
             .padding(.bottom, 12)
 
+            // Stats (collapsible)
+            Divider().padding(.horizontal, 16)
+            StatsToggleRow(viewModel: viewModel)
+            if viewModel.showStats {
+                Divider().padding(.horizontal, 16)
+                StatsDropdownSection(viewModel: viewModel, mode: .lock)
+            }
+
             // Settings
             Divider().padding(.horizontal, 16)
 
@@ -514,6 +536,14 @@ struct RelaxIdleView: View {
             .padding(.horizontal, 20)
             .padding(.top, 6)
             .padding(.bottom, 12)
+
+            // Stats (collapsible)
+            Divider().padding(.horizontal, 16)
+            StatsToggleRow(viewModel: viewModel)
+            if viewModel.showStats {
+                Divider().padding(.horizontal, 16)
+                StatsDropdownSection(viewModel: viewModel, mode: .relax)
+            }
 
             // Settings
             Divider().padding(.horizontal, 16)
@@ -867,5 +897,123 @@ struct PresetButton: View {
         }
         .buttonStyle(.plain)
             .focusable(false)
+    }
+}
+
+// MARK: - Stats Dropdown
+
+struct StatsToggleRow: View {
+    @ObservedObject var viewModel: MenuBarViewModel
+
+    var body: some View {
+        Button(action: { withAnimation { viewModel.showStats.toggle() } }) {
+            HStack {
+                Text("stats")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.secondary.opacity(0.4))
+                    .rotationEffect(.degrees(viewModel.showStats ? 90 : 0))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusable(false)
+    }
+}
+
+struct StatsDropdownSection: View {
+    @ObservedObject var viewModel: MenuBarViewModel
+    let mode: AppMode
+
+    var body: some View {
+        VStack(spacing: 8) {
+            // Period picker
+            HStack {
+                Text("period")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Menu {
+                    ForEach(StatsPeriodKind.menubarOptions) { p in
+                        Button(p.label) {
+                            viewModel.statsPeriod = p
+                            viewModel.loadStatsSummary()
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(viewModel.statsPeriod.label)
+                            .font(.system(size: 10, design: .monospaced))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8))
+                    }
+                    .foregroundColor(.secondary)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
+
+            Divider().padding(.vertical, 2)
+
+            // Mode-aware metrics
+            if mode == .lock {
+                MetricRow(label: "sessions", value: "\(viewModel.statsSummary.lockCount)")
+                MetricRow(label: "total time", value: formatDuration(viewModel.statsSummary.totalLockedSeconds))
+                if viewModel.statsSummary.lockCount > 0 {
+                    MetricRow(label: "avg duration", value: formatDuration(viewModel.statsSummary.totalLockedSeconds / max(1, viewModel.statsSummary.lockCount)))
+                }
+                if viewModel.statsSummary.emergencyCancellations > 0 {
+                    MetricRow(label: "emergency", value: "\(viewModel.statsSummary.emergencyCancellations)")
+                }
+            } else {
+                MetricRow(label: "sessions", value: "\(viewModel.statsSummary.relaxSessionCount)")
+                MetricRow(label: "session time", value: formatDuration(viewModel.statsSummary.totalRelaxSessionSeconds))
+                MetricRow(label: "breaks", value: "\(viewModel.statsSummary.breakCount)")
+                MetricRow(label: "break time", value: formatDuration(viewModel.statsSummary.totalBreakSeconds))
+                if viewModel.statsSummary.breaksSkippedEarly > 0 {
+                    MetricRow(label: "skipped early", value: "\(viewModel.statsSummary.breaksSkippedEarly)")
+                }
+            }
+
+            // Link to full window
+            Button(action: { viewModel.onOpenStatistics?() }) {
+                HStack {
+                    Text("view all statistics")
+                        .font(.system(size: 10))
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 9, weight: .medium))
+                }
+                .foregroundColor(.secondary)
+                .padding(.top, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+    }
+}
+
+struct MetricRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary.opacity(0.7))
+            Spacer()
+            Text(value)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(.secondary)
+        }
     }
 }

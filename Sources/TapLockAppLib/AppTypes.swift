@@ -73,6 +73,43 @@ public enum OverlayColor: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Stats Period
+
+public enum StatsPeriodKind: String, CaseIterable, Identifiable {
+    case today
+    case yesterday
+    case thisWeek
+    case lastWeek
+    case thisMonth
+    case lastMonth
+    case thisYear
+    case lastYear
+    case allTime
+    case custom
+
+    public var id: String { rawValue }
+
+    public var label: String {
+        switch self {
+        case .today: return "today"
+        case .yesterday: return "yesterday"
+        case .thisWeek: return "this week"
+        case .lastWeek: return "last week"
+        case .thisMonth: return "this month"
+        case .lastMonth: return "last month"
+        case .thisYear: return "this year"
+        case .lastYear: return "last year"
+        case .allTime: return "all time"
+        case .custom: return "custom"
+        }
+    }
+
+    /// Periods exposed in the compact menubar picker (excludes custom — that's window-only).
+    public static var menubarOptions: [StatsPeriodKind] {
+        allCases.filter { $0 != .custom }
+    }
+}
+
 /// Transparency presets. Label shows transparency %, value is the actual opacity used.
 /// 0% transparency = fully opaque, 100% = fully transparent.
 public enum TransparencyPreset: Double, CaseIterable, Identifiable {
