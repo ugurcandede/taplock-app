@@ -105,7 +105,7 @@ jobs:
 
             ### Install
             ```bash
-            brew tap ugurcandede/taplock
+            brew tap ugurcandede/tap
             brew install --cask taplock-app
             ```
 
@@ -118,8 +118,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          git clone https://x-access-token:${GH_TOKEN}@github.com/ugurcandede/homebrew-taplock.git /tmp/homebrew-taplock
-          cd /tmp/homebrew-taplock
+          git clone https://x-access-token:${GH_TOKEN}@github.com/ugurcandede/homebrew-tap.git /tmp/homebrew-tap
+          cd /tmp/homebrew-tap
           VERSION="${{ steps.version.outputs.version }}"
           sed -i '' "s|version \".*\"|version \"${VERSION}\"|" Casks/taplock-app.rb
           sed -i '' "s|sha256 \".*\"|sha256 \"${SHA256}\"|" Casks/taplock-app.rb
