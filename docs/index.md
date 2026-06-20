@@ -18,7 +18,7 @@ title: Home
 
   <div class="hero-install">
     <span class="comment"># Install via Homebrew</span><br>
-    brew tap ugurcandede/taplock<br>
+    brew tap ugurcandede/tap<br>
     brew install taplock<span class="comment">              # CLI</span><br>
     brew install --cask taplock-app<span class="comment">   # Menu bar app</span>
   </div>
@@ -138,7 +138,7 @@ taplock relax --every 25m --break 5m</pre>
   <div style="margin: 16px 0 24px; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
     <a href="https://github.com/ugurcandede/taplock"><img src="https://img.shields.io/badge/CLI%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="CLI" height="22"></a>
     <a href="https://github.com/ugurcandede/taplock-app"><img src="https://img.shields.io/badge/App%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="App" height="22"></a>
-    <a href="https://github.com/ugurcandede/homebrew-taplock"><img src="https://img.shields.io/badge/Homebrew%20Tap-FBB040?style=flat-square&logo=homebrew&logoColor=000" alt="Homebrew" height="22"></a>
+    <a href="https://github.com/ugurcandede/homebrew-tap"><img src="https://img.shields.io/badge/Homebrew%20Tap-FBB040?style=flat-square&logo=homebrew&logoColor=000" alt="Homebrew" height="22"></a>
   </div>
 </div>
 

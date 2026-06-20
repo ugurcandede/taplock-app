@@ -8,7 +8,7 @@ title: Download
 ## Homebrew (Recommended)
 
 ```bash
-brew tap ugurcandede/taplock
+brew tap ugurcandede/tap
 ```
 
 ### CLI
