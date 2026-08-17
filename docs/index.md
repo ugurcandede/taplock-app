@@ -133,11 +133,27 @@ taplock relax --every 25m --break 5m</pre>
 
 ---
 
+<div class="home-win">
+  <span class="win-pill">
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M0 2.25 6.5 1.36v6.3H0zM7.29 1.25 16 0v7.66H7.29zM0 8.34h6.5v6.3L0 13.75zm7.29 0H16V16l-8.71-1.25z"/></svg>
+    Also on Windows
+  </span>
+  <h2>Relax mode, ported to Windows</h2>
+  <p>The break cycle, the three overlay themes, the posture reminder and the statistics — as a single <code>.exe</code> in the notification area. Lock mode stays on the Mac; relax mode never touches your input, so the port needs no driver and no admin rights. Config and event log share the macOS schema, so they travel between machines.</p>
+  <div class="btn-row">
+    <a class="btn btn-primary" href="{{ '/windows' | relative_url }}">See the Windows port</a>
+    <a class="btn btn-ghost" href="https://github.com/ugurcandede/taplock-windows/releases/latest/download/TapLock.exe">Download TapLock</a>
+  </div>
+</div>
+
+---
+
 <div style="text-align:center; padding: 40px 0 20px;">
   <h2>Links</h2>
   <div style="margin: 16px 0 24px; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
     <a href="https://github.com/ugurcandede/taplock"><img src="https://img.shields.io/badge/CLI%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="CLI" height="22"></a>
     <a href="https://github.com/ugurcandede/taplock-app"><img src="https://img.shields.io/badge/App%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="App" height="22"></a>
+    <a href="https://github.com/ugurcandede/taplock-windows"><img src="https://img.shields.io/badge/Windows%20Port-0078D4?style=flat-square&logo=windows&logoColor=white" alt="Windows Port" height="22"></a>
     <a href="https://github.com/ugurcandede/homebrew-tap"><img src="https://img.shields.io/badge/Homebrew%20Tap-FBB040?style=flat-square&logo=homebrew&logoColor=000" alt="Homebrew" height="22"></a>
   </div>
 </div>

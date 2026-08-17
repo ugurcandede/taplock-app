@@ -41,6 +41,12 @@ The CGEvent tap will stop receiving events, effectively ending the lock. The ove
 
 ---
 
+### Is there a Windows version?
+
+Relax mode has one: [TapLock for Windows]({{ '/windows' | relative_url }}), a single executable that lives in the notification area. Lock mode is not ported — blocking input on Windows means hooking the input stack, and the port deliberately stays in user space, with no driver and no admin rights. Both builds read and write the same config and event log, so those files can move between machines.
+
+---
+
 ### Can I run both CLI and App at the same time?
 
 They share the same `TapLockCore` library but run as separate processes. Only one lock session can be active at a time — the CLI uses a PID file to prevent multiple instances.

@@ -34,6 +34,17 @@ Download universal binaries (Apple Silicon + Intel) directly:
 
 ---
 
+## Windows
+
+Relax mode has a Windows port — a single executable, no installer:
+
+- **Download**: [TapLock](https://github.com/ugurcandede/taplock-windows/releases/latest/download/TapLock.exe) · [all releases](https://github.com/ugurcandede/taplock-windows/releases)
+- **Details**: [the Windows page]({{ '/windows' | relative_url }})
+
+Requires Windows 10 version 1809 or later. The executable is unsigned, so SmartScreen may stop it the first time — choose **More info → Run anyway**. Lock mode is not part of the port.
+
+---
+
 ## Build from Source
 
 Requires Swift 5.9+ (Xcode Command Line Tools).
@@ -61,5 +72,5 @@ open TapLock.app
 
 ## Requirements
 
-- macOS 13.0 (Ventura) or later
-- Apple Silicon or Intel
+- **macOS**: 13.0 (Ventura) or later · Apple Silicon or Intel
+- **Windows**: 10 version 1809 (build 17763) or later, 64-bit

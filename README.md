@@ -16,6 +16,7 @@
 <p style="text-align: center">
   <a href="https://ugurcandede.github.io/taplock-app"><img src="https://img.shields.io/badge/Website-000?style=flat-square&logo=safari&logoColor=white" alt="Website"></a>
   <a href="https://github.com/ugurcandede/taplock"><img src="https://img.shields.io/badge/CLI%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="CLI"></a>
+  <a href="https://github.com/ugurcandede/taplock-windows"><img src="https://img.shields.io/badge/Windows%20Port-0078D4?style=flat-square&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0zIDUuNUwxMCA0LjVWMTEuNUgzVjUuNU0xMSA0LjVMMjEgM1YxMS41SDExVjQuNU0zIDEyLjVIMTBWMTkuNUwzIDE4LjVWMTIuNU0xMSAxMi41SDIxVjIxTDExIDE5LjVWMTIuNVoiLz48L3N2Zz4=" alt="Windows Port"></a>
   <a href="https://github.com/ugurcandede/homebrew-tap"><img src="https://img.shields.io/badge/Homebrew%20Tap-FBB040?style=flat-square&logo=homebrew&logoColor=000" alt="Homebrew"></a>
 </p>
 
@@ -27,6 +28,15 @@
 brew tap ugurcandede/tap
 brew install --cask taplock-app
 ```
+
+### On Windows
+
+Relax mode has a Windows port: **[taplock-windows](https://github.com/ugurcandede/taplock-windows)** — a single
+executable in the notification area, no installer and no admin rights.
+[Download](https://github.com/ugurcandede/taplock-windows/releases/latest/download/TapLock.exe) ·
+[details](https://ugurcandede.github.io/taplock-app/windows)
+
+Lock mode is not part of the port. Config and event log share the schema used here, so both builds read each other's files.
 
 ---
 
