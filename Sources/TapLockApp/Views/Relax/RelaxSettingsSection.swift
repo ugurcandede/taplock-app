@@ -38,6 +38,7 @@ struct RelaxSettingsSection: View {
             ))
             SettingToggle(label: "silent", isOn: $viewModel.relaxSilent)
             SettingToggle(label: "show timer in menu bar", isOn: $viewModel.relaxShowTimerInMenuBar)
+            SettingToggle(label: "send anonymous usage stats", isOn: $viewModel.sendUsageStats)
             HStack {
                 Text("posture reminder")
                     .font(.system(size: 11))

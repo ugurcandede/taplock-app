@@ -21,6 +21,7 @@ public final class MenuBarViewModel: ObservableObject {
     @Published public var selectedColor: OverlayColor = .black
     @Published public var showSettings = false
     @Published public var launchAtLogin: Bool = SMAppService.mainApp.status == .enabled
+    @Published public var sendUsageStats: Bool = Analytics.enabled { didSet { Analytics.enabled = sendUsageStats } }
     @Published public var lastError: String? = nil
 
     // Mode
@@ -75,6 +76,7 @@ public final class MenuBarViewModel: ObservableObject {
     public func startSession() {
         guard !isActive else { return }
         lastError = nil
+        Analytics.lastUsedMode = AppMode.lock.rawValue
 
         guard InputBlocker.checkAccessibility() else {
             InputBlocker.requestAccessibility()
@@ -197,6 +199,7 @@ public final class MenuBarViewModel: ObservableObject {
     public func startRelaxSession() {
         guard !isActive && !isRelaxWaiting && !isOnBreak else { return }
         lastError = nil
+        Analytics.lastUsedMode = AppMode.relax.rawValue
 
         guard let intervalVal = Int(relaxInterval), intervalVal > 0 else {
             lastError = "Invalid interval"
