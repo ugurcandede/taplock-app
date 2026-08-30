@@ -13,7 +13,9 @@ TapLock uses a `CGEvent` tap to intercept and block keyboard, trackpad, and mous
 
 ### Is my input data collected or sent anywhere?
 
-No. TapLock blocks events locally and discards them. No keystrokes, mouse movements, or any other data is recorded or transmitted.
+Your input, never. TapLock blocks events locally and discards them — no keystrokes or mouse movements are recorded or transmitted.
+
+The only thing it sends is one anonymous ping per day to Google Analytics: a random install id, the app version and which mode you last used (lock or relax). **No keystrokes, no input data, no device names.** Turn it off any time by unchecking **send anonymous usage stats** in settings.
 
 ---
 

@@ -15,6 +15,7 @@ struct SettingsSection: View {
             SettingToggle(label: "dim screen", isOn: $viewModel.dimEnabled)
             SettingToggle(label: "silent", isOn: $viewModel.silentEnabled)
             SettingToggle(label: "show timer in menu bar", isOn: $viewModel.showTimerInMenuBar)
+            SettingToggle(label: "send anonymous usage stats", isOn: $viewModel.sendUsageStats)
 
             HStack {
                 Text("delay")
