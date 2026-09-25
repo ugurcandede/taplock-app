@@ -112,6 +112,12 @@ public final class MenuBarViewModel: ObservableObject {
 
     // Update banner
     @Published public var availableUpdate: AppUpdate?
+    @Published public private(set) var updateState: UpdateState = .idle
+
+    public enum UpdateState { case idle, updating, notInBrewYet, failed }
+
+    /// Updating quits the app, so it waits until no lock or relax session runs.
+    public var canUpdate: Bool { !isActive && !isRelaxWaiting && !isOnBreak }
     private var updateBannerTrackedVersion: String?
 
     // Analytics bookkeeping
@@ -187,17 +193,29 @@ public final class MenuBarViewModel: ObservableObject {
         }
     }
 
-    public func openUpdateNotes() {
-        guard let update = availableUpdate else { return }
-        Analytics.track("update_notes_opened", ["latest_version": update.version])
-        NSWorkspace.shared.open(update.url)
+    /// Homebrew installs upgrade in place (brew quits and relaunches us);
+    /// anything else gets the release page.
+    public func performUpdate() {
+        guard let update = availableUpdate, canUpdate, updateState != .updating else { return }
+        guard let prefix = UpdateChecker.brewPrefix else {
+            Analytics.track("update_started", ["latest_version": update.version, "result": "release_page"])
+            NSWorkspace.shared.open(update.url)
+            return
+        }
+        Analytics.track("update_started", ["latest_version": update.version, "result": "brew"])
+        Analytics.flush() // brew is about to quit us
+        updateState = .updating
+        UpdateChecker.upgrade(prefix: prefix) { [weak self] upToDate in
+            self?.updateState = upToDate ? .notInBrewYet : .failed
+            Analytics.track("update_failed", [
+                "latest_version": update.version,
+                "reason": upToDate ? "not_in_brew_yet" : "brew_error",
+            ])
+        }
     }
 
-    public func copyBrewCommand() {
-        guard let update = availableUpdate else { return }
-        Analytics.track("update_brew_copied", ["latest_version": update.version])
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(UpdateChecker.brewCommand, forType: .string)
+    public func openUpdateLog() {
+        NSWorkspace.shared.open(UpdateChecker.logURL)
     }
 
     public func dismissUpdate() {
