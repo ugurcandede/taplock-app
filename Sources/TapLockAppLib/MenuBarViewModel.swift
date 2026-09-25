@@ -144,8 +144,8 @@ public final class MenuBarViewModel: ObservableObject {
 
     private func trackSetting(_ name: String, _ value: Any) {
         guard !isLoadingSettings else { return }
+        refreshUserProperties() // first, so the event carries the new values
         Analytics.track("setting_changed", ["setting": name, "value": "\(value)"])
-        refreshUserProperties()
     }
 
     /// Settings worth slicing every report by.
