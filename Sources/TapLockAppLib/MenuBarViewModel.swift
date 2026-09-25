@@ -13,19 +13,28 @@ public final class MenuBarViewModel: ObservableObject {
     @Published public var durationInput: String = ""
     @Published public var isInfiniteMode = true
     @Published public var delaySeconds: String = ""
-    @Published public var dimEnabled = false
-    @Published public var silentEnabled = false
-    @Published public var keyboardOnly = false
-    @Published public var showOverlay = true
-    @Published public var showTimerInMenuBar = false
-    @Published public var selectedColor: OverlayColor = .black
-    @Published public var showSettings = false
+    @Published public var dimEnabled = false { didSet { trackSetting("lock_dim", dimEnabled) } }
+    @Published public var silentEnabled = false { didSet { trackSetting("lock_silent", silentEnabled) } }
+    @Published public var keyboardOnly = false { didSet { trackSetting("lock_keyboard_only", keyboardOnly) } }
+    @Published public var showOverlay = true { didSet { trackSetting("lock_overlay", showOverlay) } }
+    @Published public var showTimerInMenuBar = false { didSet { trackSetting("lock_menubar_timer", showTimerInMenuBar) } }
+    @Published public var selectedColor: OverlayColor = .black { didSet { trackSetting("lock_color", selectedColor.colorName) } }
+    @Published public var showSettings = false {
+        didSet { if showSettings { Analytics.track("settings_opened", ["mode": currentMode.rawValue]) } }
+    }
     @Published public var launchAtLogin: Bool = SMAppService.mainApp.status == .enabled
-    @Published public var sendUsageStats: Bool = Analytics.enabled { didSet { Analytics.enabled = sendUsageStats } }
+    @Published public var sendUsageStats: Bool = Analytics.enabled {
+        didSet {
+            Analytics.enabled = sendUsageStats
+            trackSetting("usage_stats", sendUsageStats) // only lands when turned on
+        }
+    }
     @Published public var lastError: String? = nil
 
     // Mode
-    @Published public var currentMode: AppMode = .lock
+    @Published public var currentMode: AppMode = .lock {
+        didSet { if currentMode != oldValue { Analytics.track("mode_changed", ["mode": currentMode.rawValue]) } }
+    }
 
     // Relax settings
     @Published public var relaxInterval: String = "25"
@@ -33,19 +42,36 @@ public final class MenuBarViewModel: ObservableObject {
     @Published public var relaxBreakDuration: String = "5"
     @Published public var relaxBreakUnit: DurationUnit = .minutes
     // Appearance settings can change while a session runs; didSet pushes them into it.
-    @Published public var relaxTheme: RelaxTheme = .breathing { didSet { updateActiveRelaxConfig() } }
-    @Published public var relaxColor: OverlayColor = .green { didSet { updateActiveRelaxConfig() } }
-    @Published public var relaxTransparency: TransparencyPreset = .light { didSet { updateActiveRelaxConfig() } }
-    @Published public var relaxSilent: Bool = false { didSet { updateActiveRelaxConfig() } }
+    @Published public var relaxTheme: RelaxTheme = .breathing {
+        didSet { updateActiveRelaxConfig(); trackSetting("relax_theme", relaxTheme.rawValue) }
+    }
+    @Published public var relaxColor: OverlayColor = .green {
+        didSet { updateActiveRelaxConfig(); trackSetting("relax_color", relaxColor.colorName) }
+    }
+    @Published public var relaxTransparency: TransparencyPreset = .light {
+        didSet { updateActiveRelaxConfig(); trackSetting("relax_transparency", relaxTransparency.label) }
+    }
+    @Published public var relaxSilent: Bool = false {
+        didSet { updateActiveRelaxConfig(); trackSetting("relax_silent", relaxSilent) }
+    }
     // The status item only redraws on session state changes, so nudge it here.
     @Published public var relaxShowTimerInMenuBar: Bool = false {
-        didSet { if isRelaxWaiting || isOnBreak { onSessionStateChanged?(true) } }
+        didSet {
+            if isRelaxWaiting || isOnBreak { onSessionStateChanged?(true) }
+            trackSetting("relax_menubar_timer", relaxShowTimerInMenuBar)
+        }
     }
-    @Published public var relaxShowPostureReminder: Bool = true { didSet { updateActiveRelaxConfig() } }
+    @Published public var relaxShowPostureReminder: Bool = true {
+        didSet { updateActiveRelaxConfig(); trackSetting("relax_posture", relaxShowPostureReminder) }
+    }
     /// Minutes between posture reminders; empty means once per interval (halfway).
+    /// Not tracked per keystroke; relax_start carries the value in use.
     @Published public var relaxPostureInterval: String = "" { didSet { updateActiveRelaxConfig() } }
     @Published public var relaxResumeOnLaunch: Bool = UserDefaults.standard.bool(forKey: "relaxResumeOnLaunch") {
-        didSet { UserDefaults.standard.set(relaxResumeOnLaunch, forKey: "relaxResumeOnLaunch") }
+        didSet {
+            UserDefaults.standard.set(relaxResumeOnLaunch, forKey: "relaxResumeOnLaunch")
+            trackSetting("relax_resume_on_launch", relaxResumeOnLaunch)
+        }
     }
 
     /// True while a relax session runs. Survives reboot/logout/crash so the session
@@ -61,8 +87,12 @@ public final class MenuBarViewModel: ObservableObject {
     @Published public var relaxRemainingSeconds: Int = 0
 
     // Stats — shared between the menubar dropdown and the Statistics window.
-    @Published public var showStats: Bool = false
-    @Published public var statsPeriod: StatsPeriodKind = .today
+    @Published public var showStats: Bool = false {
+        didSet { if showStats { Analytics.track("stats_opened", ["mode": currentMode.rawValue]) } }
+    }
+    @Published public var statsPeriod: StatsPeriodKind = .today {
+        didSet { if statsPeriod != oldValue { Analytics.track("stats_period_changed", ["period": statsPeriod.rawValue]) } }
+    }
     @Published public var statsCustomStart: Date = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @Published public var statsCustomEnd: Date = Date()
     @Published public var statsSummary: StatsSummary = .empty
@@ -80,7 +110,102 @@ public final class MenuBarViewModel: ObservableObject {
     let maxSafetyDuration = 300
     let maxDuration = 3600 // 1 hour cap
 
-    public init() {}
+    // Update banner
+    @Published public var availableUpdate: AppUpdate?
+    private var updateBannerTrackedVersion: String?
+
+    // Analytics bookkeeping
+    /// Set while config is loaded into the form, so those assignments are not
+    /// reported as user setting changes.
+    private var isLoadingSettings = false
+    private var lockStartDate: Date?
+    private var lockPlannedSeconds = 0
+    private var lockEmergency = false
+    private var relaxStartDate: Date?
+    private var relaxBreaks = 0
+    private var breakStartDate: Date?
+    private var breakTrigger = "timer"
+    private var isResuming = false
+    private var emergencyObserver: NSObjectProtocol?
+
+    public init() {
+        emergencyObserver = NotificationCenter.default.addObserver(
+            forName: .cleanLockEmergencyCancel, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.lockEmergency = true
+        }
+    }
+
+    deinit {
+        if let emergencyObserver { NotificationCenter.default.removeObserver(emergencyObserver) }
+    }
+
+    // MARK: - Analytics
+
+    private func trackSetting(_ name: String, _ value: Any) {
+        guard !isLoadingSettings else { return }
+        Analytics.track("setting_changed", ["setting": name, "value": "\(value)"])
+        refreshUserProperties()
+    }
+
+    /// Settings worth slicing every report by.
+    public func refreshUserProperties() {
+        Analytics.setUserProperties([
+            "launch_at_login": launchAtLogin,
+            "accessibility": hasAccessibility,
+            "resume_on_launch": relaxResumeOnLaunch,
+            "relax_theme": relaxTheme.rawValue,
+        ])
+    }
+
+    /// Params for the periodic heartbeat while a session runs; nil when idle.
+    public func heartbeatParams() -> [String: Any]? {
+        if isActive { return ["mode": "lock", "state": isDelaying ? "delay" : "locked"] }
+        if isRelaxWaiting || isOnBreak { return ["mode": "relax", "state": isOnBreak ? "break" : "waiting"] }
+        return nil
+    }
+
+    public func popoverOpened() {
+        let state = isActive || isRelaxWaiting || isOnBreak ? "active" : "idle"
+        Analytics.track("popover_opened", ["mode": currentMode.rawValue, "state": state])
+        if let update = availableUpdate, updateBannerTrackedVersion != update.version {
+            updateBannerTrackedVersion = update.version
+            Analytics.track("update_banner_shown", ["latest_version": update.version])
+        }
+    }
+
+    public func accessibilityRequested() {
+        Analytics.track("accessibility_requested")
+        InputBlocker.requestAccessibility()
+    }
+
+    // MARK: - Updates
+
+    public func checkForUpdates() {
+        UpdateChecker.check { [weak self] update in
+            self?.availableUpdate = update
+        }
+    }
+
+    public func openUpdateNotes() {
+        guard let update = availableUpdate else { return }
+        Analytics.track("update_notes_opened", ["latest_version": update.version])
+        NSWorkspace.shared.open(update.url)
+    }
+
+    public func copyBrewCommand() {
+        guard let update = availableUpdate else { return }
+        Analytics.track("update_brew_copied", ["latest_version": update.version])
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(UpdateChecker.brewCommand, forType: .string)
+    }
+
+    public func dismissUpdate() {
+        guard let update = availableUpdate else { return }
+        Analytics.track("update_dismissed", ["latest_version": update.version])
+        UpdateChecker.dismissedVersion = update.version
+        availableUpdate = nil
+    }
 
     public var parsedDuration: Int? {
         if isInfiniteMode { return nil }
@@ -97,12 +222,14 @@ public final class MenuBarViewModel: ObservableObject {
         guard InputBlocker.checkAccessibility() else {
             InputBlocker.requestAccessibility()
             lastError = "Accessibility permission required"
+            Analytics.track("lock_error", ["reason": "accessibility"])
             return
         }
 
         let effectiveDuration = parsedDuration ?? maxSafetyDuration
         if effectiveDuration > maxDuration {
             lastError = "Maximum duration is \(maxDuration / 60) minutes"
+            Analytics.track("lock_error", ["reason": "too_long"])
             return
         }
 
@@ -151,7 +278,22 @@ public final class MenuBarViewModel: ObservableObject {
             onSessionStateChanged?(true)
             onLockStarted?()
             startCountdownTimer()
+            lockStartDate = Date()
+            lockPlannedSeconds = duration
+            lockEmergency = false
+            Analytics.track("lock_start", [
+                "duration_sec": duration,
+                "indefinite": isInfiniteMode,
+                "delay_sec": Int(delaySeconds) ?? 0,
+                "keyboard_only": keyboardOnly,
+                "dim": dimEnabled,
+                "silent": silentEnabled,
+                "overlay": showOverlay,
+                "color": selectedColor.colorName,
+                "menubar_timer": showTimerInMenuBar,
+            ])
         } catch {
+            Analytics.track("lock_error", ["reason": "start_failed"])
             lastError = "\(error)"
             session = nil
             isActive = false
@@ -160,12 +302,14 @@ public final class MenuBarViewModel: ObservableObject {
     }
 
     public func applyPreset(seconds: Int) {
+        Analytics.track("preset_applied", ["mode": "lock", "value": "\(seconds)s"])
         isInfiniteMode = false
         durationInput = "\(seconds)"
     }
 
     public func cancelSession() {
         if isDelaying {
+            Analytics.track("lock_delay_cancelled")
             delayTimer?.invalidate()
             delayTimer = nil
             sessionEnded()
@@ -193,9 +337,20 @@ public final class MenuBarViewModel: ObservableObject {
             try? SMAppService.mainApp.unregister()
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
+        trackSetting("launch_at_login", launchAtLogin)
     }
 
     func sessionEnded() {
+        if let start = lockStartDate {
+            let actual = Int(Date().timeIntervalSince(start))
+            let endedBy = lockEmergency ? "emergency" : (actual >= lockPlannedSeconds - 1 ? "completed" : "cancelled")
+            Analytics.track("lock_end", [
+                "planned_sec": lockPlannedSeconds,
+                "actual_sec": actual,
+                "ended_by": endedBy,
+            ])
+            lockStartDate = nil
+        }
         isActive = false
         isDelaying = false
         remainingSeconds = 0
@@ -219,16 +374,19 @@ public final class MenuBarViewModel: ObservableObject {
 
         guard let intervalVal = Int(relaxInterval), intervalVal > 0 else {
             lastError = "Invalid interval"
+            Analytics.track("relax_error", ["reason": "invalid_interval"])
             return
         }
         guard let breakVal = Int(relaxBreakDuration), breakVal > 0 else {
             lastError = "Invalid break duration"
+            Analytics.track("relax_error", ["reason": "invalid_break"])
             return
         }
         let intervalSec = intervalVal * relaxIntervalUnit.multiplier
         let breakSec = breakVal * relaxBreakUnit.multiplier
         if intervalSec <= breakSec {
             lastError = "Interval must be longer than break"
+            Analytics.track("relax_error", ["reason": "interval_not_longer"])
             return
         }
 
@@ -266,6 +424,21 @@ public final class MenuBarViewModel: ObservableObject {
         relaxSession?.start()
         Self.relaxWasRunning = true
         startRelaxCountdownTimer(seconds: intervalSec, isBreak: false)
+
+        relaxStartDate = Date()
+        relaxBreaks = 0
+        Analytics.track("relax_start", [
+            "interval_sec": intervalSec,
+            "break_sec": breakSec,
+            "theme": relaxTheme.rawValue,
+            "color": relaxColor.colorName,
+            "transparency": relaxTransparency.label,
+            "silent": relaxSilent,
+            "posture": relaxShowPostureReminder,
+            "posture_interval_sec": parsedPostureInterval ?? 0,
+            "menubar_timer": relaxShowTimerInMenuBar,
+            "resumed": isResuming,
+        ])
     }
 
     /// Restart the relax session from the saved config if it was running when the
@@ -274,7 +447,9 @@ public final class MenuBarViewModel: ObservableObject {
         guard relaxResumeOnLaunch, Self.relaxWasRunning else { return }
         loadRelaxConfig()
         currentMode = .relax
+        isResuming = true
         startRelaxSession()
+        isResuming = false
     }
 
     public func stopRelaxSession() {
@@ -287,12 +462,14 @@ public final class MenuBarViewModel: ObservableObject {
 
     public func startBreakNow() {
         guard isRelaxWaiting else { return }
+        breakTrigger = "manual"
         relaxSession?.startBreakNow()
     }
 
     /// Discard the running countdown and wait a full interval again.
     public func restartRelaxCountdown() {
         guard isRelaxWaiting, let session = relaxSession else { return }
+        Analytics.track("relax_restart", ["elapsed_sec": session.config.interval - relaxRemainingSeconds])
         // skipBreak with no break showing just reschedules the next one.
         session.skipBreak()
         startRelaxCountdownTimer(seconds: session.config.interval, isBreak: false)
@@ -316,6 +493,13 @@ public final class MenuBarViewModel: ObservableObject {
     }
 
     func relaxSessionEnded() {
+        if let start = relaxStartDate {
+            Analytics.track("relax_end", [
+                "duration_sec": Int(Date().timeIntervalSince(start)),
+                "breaks": relaxBreaks,
+            ])
+            relaxStartDate = nil
+        }
         Self.relaxWasRunning = false
         isRelaxWaiting = false
         isOnBreak = false
@@ -330,6 +514,9 @@ public final class MenuBarViewModel: ObservableObject {
 
     public func relaxBreakStarted() {
         guard let config = relaxSession?.config else { return }
+        breakStartDate = Date()
+        Analytics.track("break_start", ["trigger": breakTrigger, "break_sec": config.breakDuration])
+        breakTrigger = "timer"
         isOnBreak = true
         isRelaxWaiting = false
         relaxRemainingSeconds = config.breakDuration
@@ -339,6 +526,16 @@ public final class MenuBarViewModel: ObservableObject {
 
     public func relaxBreakEnded() {
         guard let config = relaxSession?.config else { return }
+        if let start = breakStartDate {
+            let actual = Int(Date().timeIntervalSince(start))
+            Analytics.track("break_end", [
+                "planned_sec": config.breakDuration,
+                "actual_sec": actual,
+                "skipped": actual < config.breakDuration - 1,
+            ])
+            breakStartDate = nil
+            relaxBreaks += 1
+        }
         isOnBreak = false
         isRelaxWaiting = true
         relaxRemainingSeconds = config.interval
@@ -366,6 +563,7 @@ public final class MenuBarViewModel: ObservableObject {
     }
 
     public func applyRelaxPreset(interval: Int, breakDur: Int) {
+        Analytics.track("preset_applied", ["mode": "relax", "value": "\(interval)/\(breakDur)"])
         relaxInterval = "\(interval)"
         relaxIntervalUnit = .minutes
         relaxBreakDuration = "\(breakDur)"
@@ -432,6 +630,8 @@ public final class MenuBarViewModel: ObservableObject {
 
     public func loadRelaxConfig() {
         guard let config = ConfigStore.loadRelaxConfig() else { return }
+        isLoadingSettings = true
+        defer { isLoadingSettings = false }
         // Pick best unit for display
         let (iVal, iUnit) = bestUnit(seconds: config.interval)
         relaxInterval = "\(iVal)"
@@ -458,6 +658,7 @@ public final class MenuBarViewModel: ObservableObject {
     private var previewDismissTimer: Timer?
 
     public func previewTheme() {
+        Analytics.track("theme_previewed", ["theme": relaxTheme.rawValue])
         dismissPreview()
         let color = relaxColor.rgb
         previewWindow = RelaxingWindowController(
@@ -474,6 +675,7 @@ public final class MenuBarViewModel: ObservableObject {
     }
 
     public func previewPostureReminder() {
+        Analytics.track("posture_previewed")
         dismissPreview()
         previewPosture = PostureWindowController()
         previewPosture?.onDismiss = { [weak self] in self?.dismissPreview() }

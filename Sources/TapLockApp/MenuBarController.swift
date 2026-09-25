@@ -10,6 +10,7 @@ final class MenuBarController {
     private var popover: NSPopover
     private let viewModel = MenuBarViewModel()
     private var menuBarTimer: Timer?
+    private var updateCheckTimer: Timer?
     private var statisticsWindowController: StatisticsWindowController?
 
     init() {
@@ -49,10 +50,20 @@ final class MenuBarController {
             self?.openStatistics()
         }
 
+        // Before the resume below, so a resumed session is tracked.
+        Analytics.start { [weak viewModel] in viewModel?.heartbeatParams() }
+        viewModel.refreshUserProperties()
+
         viewModel.resumeRelaxSessionIfNeeded()
+
+        viewModel.checkForUpdates()
+        updateCheckTimer = Timer.scheduledTimer(withTimeInterval: 24 * 3600, repeats: true) { [weak viewModel] _ in
+            viewModel?.checkForUpdates()
+        }
     }
 
     private func openStatistics() {
+        Analytics.track("statistics_window_opened")
         if statisticsWindowController == nil {
             statisticsWindowController = StatisticsWindowController(viewModel: viewModel)
         }
@@ -144,6 +155,10 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if let update = viewModel.availableUpdate {
+                UpdateBanner(update: update, viewModel: viewModel)
+            }
+
             // Mode toggle (disabled when a session is active)
             if !isAnySessionActive {
                 Picker("", selection: $viewModel.currentMode) {
@@ -185,6 +200,7 @@ struct MenuBarView: View {
         .onAppear {
             viewModel.loadRelaxConfig()
             viewModel.loadStatsSummary()
+            viewModel.popoverOpened()
             DispatchQueue.main.async {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             }

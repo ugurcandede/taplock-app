@@ -11,7 +11,7 @@ struct IdleView: View {
         VStack(spacing: 0) {
             // Accessibility warning
             if !viewModel.hasAccessibility {
-                Button(action: { InputBlocker.requestAccessibility() }) {
+                Button(action: { viewModel.accessibilityRequested() }) {
                     HStack(spacing: 6) {
                         Circle().fill(.orange).frame(width: 6, height: 6)
                         Text("grant accessibility")

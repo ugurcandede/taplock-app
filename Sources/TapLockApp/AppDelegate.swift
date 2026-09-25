@@ -10,11 +10,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         menuBarController = MenuBarController()
-        Analytics.start()
 
         // Check accessibility on launch
         if !InputBlocker.checkAccessibility() {
             InputBlocker.requestAccessibility()
         }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        Analytics.appWillTerminate()
     }
 }
