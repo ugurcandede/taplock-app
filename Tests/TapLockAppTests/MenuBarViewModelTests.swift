@@ -570,3 +570,54 @@ struct ViewModelStateTransitionTests {
         #expect(callbackCalled)
     }
 }
+
+// MARK: - Relax Controls
+
+@Suite("MenuBarViewModel - Relax Controls")
+struct ViewModelRelaxControlsTests {
+
+    @Test func startBreakNowWhenIdleIsNoop() {
+        let vm = MenuBarViewModel()
+        vm.startBreakNow()
+        #expect(vm.isOnBreak == false)
+        #expect(vm.isRelaxWaiting == false)
+    }
+
+    @Test func restartCountdownWhenIdleIsNoop() {
+        let vm = MenuBarViewModel()
+        vm.restartRelaxCountdown()
+        #expect(vm.relaxRemainingSeconds == 0)
+        #expect(vm.isRelaxWaiting == false)
+    }
+
+    @Test func appearanceChangeWithoutSessionIsSafe() {
+        let vm = MenuBarViewModel()
+        vm.relaxTheme = .mini
+        vm.relaxColor = .red
+        #expect(vm.relaxTheme == .mini)
+        #expect(vm.relaxColor == .red)
+    }
+}
+
+// MARK: - Posture Interval
+
+@Suite("MenuBarViewModel - Posture Interval")
+struct ViewModelPostureIntervalTests {
+
+    @Test func emptyMeansDefault() {
+        let vm = MenuBarViewModel()
+        #expect(vm.parsedPostureInterval == nil)
+    }
+
+    @Test func minutesToSeconds() {
+        let vm = MenuBarViewModel()
+        vm.relaxPostureInterval = "10"
+        #expect(vm.parsedPostureInterval == 600)
+    }
+
+    @Test func zeroMeansDefault() {
+        let vm = MenuBarViewModel()
+        vm.relaxPostureInterval = "0"
+        #expect(vm.parsedPostureInterval == nil)
+    }
+}

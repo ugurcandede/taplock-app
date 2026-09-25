@@ -32,12 +32,25 @@ public final class MenuBarViewModel: ObservableObject {
     @Published public var relaxIntervalUnit: DurationUnit = .minutes
     @Published public var relaxBreakDuration: String = "5"
     @Published public var relaxBreakUnit: DurationUnit = .minutes
-    @Published public var relaxTheme: RelaxTheme = .breathing
-    @Published public var relaxColor: OverlayColor = .green
-    @Published public var relaxTransparency: TransparencyPreset = .light
-    @Published public var relaxSilent: Bool = false
+    // Appearance settings can change while a session runs; didSet pushes them into it.
+    @Published public var relaxTheme: RelaxTheme = .breathing { didSet { updateActiveRelaxConfig() } }
+    @Published public var relaxColor: OverlayColor = .green { didSet { updateActiveRelaxConfig() } }
+    @Published public var relaxTransparency: TransparencyPreset = .light { didSet { updateActiveRelaxConfig() } }
+    @Published public var relaxSilent: Bool = false { didSet { updateActiveRelaxConfig() } }
     @Published public var relaxShowTimerInMenuBar: Bool = false
-    @Published public var relaxShowPostureReminder: Bool = true
+    @Published public var relaxShowPostureReminder: Bool = true { didSet { updateActiveRelaxConfig() } }
+    /// Minutes between posture reminders; empty means once per interval (halfway).
+    @Published public var relaxPostureInterval: String = "" { didSet { updateActiveRelaxConfig() } }
+    @Published public var relaxResumeOnLaunch: Bool = UserDefaults.standard.bool(forKey: "relaxResumeOnLaunch") {
+        didSet { UserDefaults.standard.set(relaxResumeOnLaunch, forKey: "relaxResumeOnLaunch") }
+    }
+
+    /// True while a relax session runs. Survives reboot/logout/crash so the session
+    /// can resume on next launch; cleared when the session is stopped.
+    static var relaxWasRunning: Bool {
+        get { UserDefaults.standard.bool(forKey: "relaxWasRunning") }
+        set { UserDefaults.standard.set(newValue, forKey: "relaxWasRunning") }
+    }
 
     // Relax active state
     @Published public var isRelaxWaiting: Bool = false
@@ -223,7 +236,8 @@ public final class MenuBarViewModel: ObservableObject {
             color: relaxColor.colorName,
             opacity: relaxTransparency.rawValue,
             silent: relaxSilent,
-            showPostureReminder: relaxShowPostureReminder
+            showPostureReminder: relaxShowPostureReminder,
+            postureInterval: parsedPostureInterval
         )
 
         // Save config
@@ -247,7 +261,17 @@ public final class MenuBarViewModel: ObservableObject {
         onLockStarted?()
 
         relaxSession?.start()
+        Self.relaxWasRunning = true
         startRelaxCountdownTimer(seconds: intervalSec, isBreak: false)
+    }
+
+    /// Restart the relax session from the saved config if it was running when the
+    /// app last exited and the user opted in. Call once at launch.
+    public func resumeRelaxSessionIfNeeded() {
+        guard relaxResumeOnLaunch, Self.relaxWasRunning else { return }
+        loadRelaxConfig()
+        currentMode = .relax
+        startRelaxSession()
     }
 
     public func stopRelaxSession() {
@@ -258,7 +282,38 @@ public final class MenuBarViewModel: ObservableObject {
         relaxSession?.skipBreak()
     }
 
+    public func startBreakNow() {
+        guard isRelaxWaiting else { return }
+        relaxSession?.startBreakNow()
+    }
+
+    /// Discard the running countdown and wait a full interval again.
+    public func restartRelaxCountdown() {
+        guard isRelaxWaiting, let session = relaxSession else { return }
+        // skipBreak with no break showing just reschedules the next one.
+        session.skipBreak()
+        startRelaxCountdownTimer(seconds: session.config.interval, isBreak: false)
+    }
+
+    var parsedPostureInterval: Int? {
+        Int(relaxPostureInterval).flatMap { $0 > 0 ? $0 * 60 : nil }
+    }
+
+    private func updateActiveRelaxConfig() {
+        guard let session = relaxSession else { return }
+        var config = session.config
+        config.theme = relaxTheme
+        config.color = relaxColor.colorName
+        config.opacity = relaxTransparency.rawValue
+        config.silent = relaxSilent
+        config.showPostureReminder = relaxShowPostureReminder
+        config.postureInterval = parsedPostureInterval
+        session.config = config
+        try? ConfigStore.saveRelaxConfig(config)
+    }
+
     func relaxSessionEnded() {
+        Self.relaxWasRunning = false
         isRelaxWaiting = false
         isOnBreak = false
         relaxRemainingSeconds = 0
@@ -386,7 +441,11 @@ public final class MenuBarViewModel: ObservableObject {
         if let color = OverlayColor.fromColorName(config.color) {
             relaxColor = color
         }
+        if let transparency = TransparencyPreset(rawValue: config.opacity) {
+            relaxTransparency = transparency
+        }
         relaxShowPostureReminder = config.showPostureReminder
+        relaxPostureInterval = config.postureInterval.map { "\($0 / 60)" } ?? ""
     }
 
     // MARK: - Previews

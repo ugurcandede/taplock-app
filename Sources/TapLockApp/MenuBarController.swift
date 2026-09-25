@@ -48,6 +48,8 @@ final class MenuBarController {
         viewModel.onOpenStatistics = { [weak self] in
             self?.openStatistics()
         }
+
+        viewModel.resumeRelaxSessionIfNeeded()
     }
 
     private func openStatistics() {
@@ -70,7 +72,8 @@ final class MenuBarController {
 
     private func updateStatusItem(isActive: Bool) {
         let symbolName: String
-        if viewModel.currentMode == .relax && (viewModel.isRelaxWaiting || viewModel.isOnBreak) {
+        let isRelaxRunning = viewModel.currentMode == .relax && (viewModel.isRelaxWaiting || viewModel.isOnBreak)
+        if isRelaxRunning {
             symbolName = "leaf.fill"
         } else if isActive {
             symbolName = "lock.fill"
@@ -79,10 +82,18 @@ final class MenuBarController {
         } else {
             symbolName = "lock.open.fill"
         }
-        statusItem.button?.image = NSImage(
+        let image = NSImage(
             systemSymbolName: symbolName,
             accessibilityDescription: "TapLock"
         )
+        if isRelaxRunning {
+            // Non-template so the menu bar keeps the color instead of tinting it monochrome.
+            let green = image?.withSymbolConfiguration(.init(paletteColors: [.systemGreen]))
+            green?.isTemplate = false
+            statusItem.button?.image = green
+        } else {
+            statusItem.button?.image = image
+        }
 
         menuBarTimer?.invalidate()
         menuBarTimer = nil

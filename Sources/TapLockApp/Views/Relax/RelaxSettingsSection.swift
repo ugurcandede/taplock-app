@@ -31,14 +31,6 @@ struct RelaxSettingsSection: View {
 
             ColorPickerRow(label: "color", selection: $viewModel.relaxColor, colors: OverlayColor.allCases)
             TransparencyPickerRow(label: "transparency", selection: $viewModel.relaxTransparency)
-
-            SettingToggle(label: "launch at login", isOn: Binding(
-                get: { viewModel.launchAtLogin },
-                set: { viewModel.toggleLaunchAtLogin($0) }
-            ))
-            SettingToggle(label: "silent", isOn: $viewModel.relaxSilent)
-            SettingToggle(label: "show timer in menu bar", isOn: $viewModel.relaxShowTimerInMenuBar)
-            SettingToggle(label: "send anonymous usage stats", isOn: $viewModel.sendUsageStats)
             HStack {
                 Text("posture reminder")
                     .font(.system(size: 11))
@@ -57,6 +49,37 @@ struct RelaxSettingsSection: View {
                     .controlSize(.mini)
                     .labelsHidden()
             }
+            if viewModel.relaxShowPostureReminder {
+                HStack {
+                    Text("every")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    TextField("auto", text: $viewModel.relaxPostureInterval)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 11))
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 44)
+                        .onChange(of: viewModel.relaxPostureInterval) { _ in
+                            viewModel.filterDigits(&viewModel.relaxPostureInterval)
+                        }
+                    Text("min")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.leading, 12)
+            }
+
+            Divider()
+
+            SettingToggle(label: "launch at login", isOn: Binding(
+                get: { viewModel.launchAtLogin },
+                set: { viewModel.toggleLaunchAtLogin($0) }
+            ))
+            SettingToggle(label: "resume after restart", isOn: $viewModel.relaxResumeOnLaunch)
+            SettingToggle(label: "silent", isOn: $viewModel.relaxSilent)
+            SettingToggle(label: "show timer in menu bar", isOn: $viewModel.relaxShowTimerInMenuBar)
+            SettingToggle(label: "send anonymous usage stats", isOn: $viewModel.sendUsageStats)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
