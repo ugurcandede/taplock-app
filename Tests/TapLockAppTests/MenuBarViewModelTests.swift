@@ -621,3 +621,20 @@ struct ViewModelPostureIntervalTests {
         #expect(vm.parsedPostureInterval == nil)
     }
 }
+
+// MARK: - Menu Bar Timer
+
+@Suite("MenuBarViewModel - Menu Bar Timer")
+struct ViewModelMenuBarTimerTests {
+
+    @Test func togglingTimerWhileRelaxRunsRefreshesStatusItem() {
+        let vm = MenuBarViewModel()
+        var calls = 0
+        vm.onSessionStateChanged = { _ in calls += 1 }
+        vm.relaxShowTimerInMenuBar = true
+        #expect(calls == 0)
+        vm.isRelaxWaiting = true
+        vm.relaxShowTimerInMenuBar = false
+        #expect(calls == 1)
+    }
+}

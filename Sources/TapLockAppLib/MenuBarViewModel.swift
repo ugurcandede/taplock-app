@@ -37,7 +37,10 @@ public final class MenuBarViewModel: ObservableObject {
     @Published public var relaxColor: OverlayColor = .green { didSet { updateActiveRelaxConfig() } }
     @Published public var relaxTransparency: TransparencyPreset = .light { didSet { updateActiveRelaxConfig() } }
     @Published public var relaxSilent: Bool = false { didSet { updateActiveRelaxConfig() } }
-    @Published public var relaxShowTimerInMenuBar: Bool = false
+    // The status item only redraws on session state changes, so nudge it here.
+    @Published public var relaxShowTimerInMenuBar: Bool = false {
+        didSet { if isRelaxWaiting || isOnBreak { onSessionStateChanged?(true) } }
+    }
     @Published public var relaxShowPostureReminder: Bool = true { didSet { updateActiveRelaxConfig() } }
     /// Minutes between posture reminders; empty means once per interval (halfway).
     @Published public var relaxPostureInterval: String = "" { didSet { updateActiveRelaxConfig() } }
