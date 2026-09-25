@@ -193,8 +193,8 @@ public final class MenuBarViewModel: ObservableObject {
         }
     }
 
-    /// Homebrew installs upgrade in place (brew quits and relaunches us);
-    /// anything else gets the release page.
+    /// Homebrew installs upgrade in place, then quit and reopen; anything else
+    /// gets the release page.
     public func performUpdate() {
         guard let update = availableUpdate, canUpdate, updateState != .updating else { return }
         guard let prefix = UpdateChecker.brewPrefix else {
@@ -203,13 +203,17 @@ public final class MenuBarViewModel: ObservableObject {
             return
         }
         Analytics.track("update_started", ["latest_version": update.version, "result": "brew"])
-        Analytics.flush() // brew is about to quit us
         updateState = .updating
-        UpdateChecker.upgrade(prefix: prefix) { [weak self] upToDate in
-            self?.updateState = upToDate ? .notInBrewYet : .failed
+        UpdateChecker.upgrade(prefix: prefix) { [weak self] succeeded in
+            if succeeded, let installed = UpdateChecker.installedVersion, installed != Analytics.appVersion {
+                UpdateChecker.relaunchAfterExit()
+                NSApp.terminate(nil)
+                return
+            }
+            self?.updateState = succeeded ? .notInBrewYet : .failed
             Analytics.track("update_failed", [
                 "latest_version": update.version,
-                "reason": upToDate ? "not_in_brew_yet" : "brew_error",
+                "reason": succeeded ? "not_in_brew_yet" : "brew_error",
             ])
         }
     }

@@ -11,10 +11,10 @@ public struct AppUpdate: Equatable {
 /// checks at launch and once a day, far below that. A dismissed version stays
 /// hidden until a newer one is published.
 ///
-/// Installs from Homebrew update themselves: `brew upgrade --cask` quits the
-/// app (the cask's `uninstall quit:`), installs the new build, and the shell
-/// that ran it — which outlives us — opens the new one. Other installs get the
-/// release page.
+/// Installs from Homebrew update themselves: `brew upgrade --cask` replaces the
+/// bundle on disk, then the app quits and reopens itself. brew would normally
+/// quit the app first (the cask's `uninstall quit:`), but it never quits an app
+/// it finds among its own parent processes. Other installs get the release page.
 ///
 /// App-agnostic on purpose: the per-app bits are the constants below.
 public enum UpdateChecker {
@@ -45,19 +45,17 @@ public enum UpdateChecker {
             .appendingPathComponent("Library/Logs/\(cask)-update.log")
     }
 
-    /// Runs the upgrade in a shell that survives this process. A real upgrade
-    /// quits us before the shell ends, so `onNotUpdated` (main queue) only runs
-    /// when nothing was installed: `true` if brew had no newer version yet —
-    /// the tap is bumped a few minutes after the GitHub release — `false` if
-    /// it failed.
-    public static func upgrade(prefix: String, onNotUpdated: @escaping (_ upToDate: Bool) -> Void) {
+    /// Runs the upgrade; `onFinished` (main queue) gets whether brew succeeded.
+    /// Success with an unchanged `installedVersion` means brew had no newer
+    /// version yet — the tap is bumped a few minutes after the GitHub release.
+    public static func upgrade(prefix: String, onFinished: @escaping (_ succeeded: Bool) -> Void) {
         let log = logURL.path
         let script = """
             echo "--- $(date)" >> "\(log)"
-            "\(prefix)/bin/brew" upgrade --cask \(cask) >> "\(log)" 2>&1 || exit 1
-            # Still running means brew installed nothing; opening would only
-            # start a second copy if another one exists.
-            kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null || open -b \(bundleID)
+            # brew's auto-update runs at most once a day, so the tap can still
+            # hold the previous cask; refresh it first. Offline, try anyway.
+            "\(prefix)/bin/brew" update --quiet >> "\(log)" 2>&1
+            "\(prefix)/bin/brew" upgrade --cask \(cask) >> "\(log)" 2>&1
             """
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
@@ -68,14 +66,29 @@ public enum UpdateChecker {
         environment["HOMEBREW_NO_ENV_HINTS"] = "1"
         process.environment = environment
         process.terminationHandler = { finished in
-            let upToDate = finished.terminationStatus == 0
-            DispatchQueue.main.async { onNotUpdated(upToDate) }
+            let succeeded = finished.terminationStatus == 0
+            DispatchQueue.main.async { onFinished(succeeded) }
         }
         do {
             try process.run()
         } catch {
-            DispatchQueue.main.async { onNotUpdated(false) }
+            DispatchQueue.main.async { onFinished(false) }
         }
+    }
+
+    /// The version of the bundle on disk, read fresh — after an upgrade it
+    /// differs from the one this process loaded at launch.
+    public static var installedVersion: String? {
+        let plist = Bundle.main.bundleURL.appendingPathComponent("Contents/Info.plist")
+        return NSDictionary(contentsOf: plist)?["CFBundleShortVersionString"] as? String
+    }
+
+    /// Open the bundle again once this process has gone. Call right before quitting.
+    public static func relaunchAfterExit() {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; open -b \(bundleID)"]
+        try? process.run()
     }
 
     public static var dismissedVersion: String? {
