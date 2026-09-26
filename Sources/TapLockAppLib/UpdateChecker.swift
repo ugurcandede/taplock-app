@@ -20,7 +20,7 @@ public struct AppUpdate: Equatable {
 public enum UpdateChecker {
     private static let repo = "ugurcandede/taplock-app"
     private static let cask = "taplock-app"
-    private static let bundleID = "com.ugurcandede.taplock"
+    private static let appName = "TapLock.app"
 
     public static func check(completion: @escaping (AppUpdate?) -> Void) {
         let url = URL(string: "https://api.github.com/repos/\(repo)/releases/latest")!
@@ -32,11 +32,20 @@ public enum UpdateChecker {
         }.resume()
     }
 
-    /// The Homebrew prefix managing this app, if it was installed as a cask.
+    /// The Homebrew prefix managing this app, if this process runs from the
+    /// bundle brew installed. brew leaves a symlink to that bundle in its
+    /// Caskroom; a copy running from anywhere else (a dev build, a hand-copied
+    /// app) is not what `brew upgrade` replaces, so it gets the release page.
     public static var brewPrefix: String? {
-        ["/opt/homebrew", "/usr/local"].first { prefix in
-            FileManager.default.isExecutableFile(atPath: "\(prefix)/bin/brew")
-                && FileManager.default.fileExists(atPath: "\(prefix)/Caskroom/\(cask)")
+        let running = Bundle.main.bundleURL.resolvingSymlinksInPath().path
+        return ["/opt/homebrew", "/usr/local"].first { prefix in
+            let caskroom = "\(prefix)/Caskroom/\(cask)"
+            guard FileManager.default.isExecutableFile(atPath: "\(prefix)/bin/brew"),
+                  let versions = try? FileManager.default.contentsOfDirectory(atPath: caskroom)
+            else { return false }
+            return versions.contains { version in
+                URL(fileURLWithPath: "\(caskroom)/\(version)/\(appName)").resolvingSymlinksInPath().path == running
+            }
         }
     }
 
@@ -84,10 +93,11 @@ public enum UpdateChecker {
     }
 
     /// Open the bundle again once this process has gone. Call right before quitting.
+    /// By path, not bundle ID: another copy with the same ID may be registered.
     public static func relaunchAfterExit() {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; open -b \(bundleID)"]
+        process.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; open '\(Bundle.main.bundleURL.path)'"]
         try? process.run()
     }
 
