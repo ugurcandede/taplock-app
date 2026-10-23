@@ -23,6 +23,26 @@ struct RelaxIdleView: View {
 
             // Duration input area
             VStack(spacing: 8) {
+                // Same pattern as lock mode's "indefinite" toggle.
+                HStack {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                    Text("advanced")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { viewModel.relaxScheduleEnabled },
+                        set: { val in withAnimation { viewModel.relaxScheduleEnabled = val } }
+                    ))
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .labelsHidden()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     TextField("25", text: $viewModel.relaxInterval)
                         .textFieldStyle(.plain)
@@ -45,7 +65,6 @@ struct RelaxIdleView: View {
                         }
                 }
                 .frame(height: 56)
-                .padding(.top, 12)
 
                 // Unit selectors
                 HStack(spacing: 16) {
@@ -53,6 +72,13 @@ struct RelaxIdleView: View {
                     UnitPicker(label: "break", selection: $viewModel.relaxBreakUnit)
                 }
                 .padding(.horizontal, 20)
+
+                if viewModel.relaxScheduleEnabled {
+                    Divider().padding(.horizontal, 16)
+                    RelaxScheduleSection(viewModel: viewModel)
+                        .padding(.horizontal, 20)
+                    Divider().padding(.horizontal, 16)
+                }
 
                 // Start button
                 Button(action: { viewModel.startRelaxSession() }) {

@@ -117,26 +117,24 @@ final class MenuBarController {
             menuBarTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
                 guard let self = self else { timer.invalidate(); return }
 
-                let seconds: Int
+                let text: String
                 if self.viewModel.currentMode == .relax {
                     guard self.viewModel.isRelaxWaiting || self.viewModel.isOnBreak else {
                         timer.invalidate()
                         self.statusItem.button?.title = ""
                         return
                     }
-                    seconds = self.viewModel.relaxRemainingSeconds
+                    text = self.viewModel.formattedRelaxRemaining
                 } else {
                     guard self.viewModel.isActive else {
                         timer.invalidate()
                         self.statusItem.button?.title = ""
                         return
                     }
-                    seconds = self.viewModel.remainingSeconds
+                    text = self.viewModel.formattedRemaining
                 }
 
-                let mins = seconds / 60
-                let secs = seconds % 60
-                self.statusItem.button?.title = String(format: " %d:%02d", mins, secs)
+                self.statusItem.button?.title = " " + text
             }
         } else {
             statusItem.button?.title = ""

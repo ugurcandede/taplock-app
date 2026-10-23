@@ -74,6 +74,48 @@ public final class MenuBarViewModel: ObservableObject {
         }
     }
 
+    // Advanced schedule. Minutes from midnight; applied when a session starts.
+    @Published public var relaxScheduleEnabled = false
+    @Published public var relaxWeekdays: Set<Int> = [2, 3, 4, 5, 6]
+    @Published public var relaxActiveStart = 9 * 60
+    @Published public var relaxActiveEnd = 18 * 60
+    @Published public var relaxQuietEnabled = false
+    @Published public var relaxQuietStart = 12 * 60
+    @Published public var relaxQuietEnd = 13 * 60
+    @Published public var relaxAlignToClock = false
+
+    var relaxSchedule: RelaxSchedule? {
+        guard relaxScheduleEnabled else { return nil }
+        return RelaxSchedule(
+            weekdays: relaxWeekdays,
+            activeStart: relaxActiveStart,
+            activeEnd: relaxActiveEnd,
+            quietStart: relaxQuietEnabled ? relaxQuietStart : nil,
+            quietEnd: relaxQuietEnabled ? relaxQuietEnd : nil,
+            alignToClock: relaxAlignToClock
+        )
+    }
+
+    /// Why the schedule form can't be used, e.g. quiet hours outside the active hours.
+    public var scheduleError: String? { relaxSchedule?.validationError }
+
+    /// Next few break times for the form's current values, so the rules explain themselves.
+    /// Empty when the schedule allows no break at all; nil when the durations are invalid.
+    public var schedulePreview: [Date]? {
+        guard let schedule = relaxSchedule,
+              let i = Int(relaxInterval), i > 0, let b = Int(relaxBreakDuration), b > 0 else { return nil }
+        let interval = i * relaxIntervalUnit.multiplier
+        let breakSec = b * relaxBreakUnit.multiplier
+        var dates: [Date] = []
+        var from = Date()
+        while dates.count < 3,
+              let next = schedule.nextBreak(after: from, interval: interval, breakDuration: breakSec) {
+            dates.append(next)
+            from = next.addingTimeInterval(TimeInterval(breakSec))
+        }
+        return dates
+    }
+
     /// True while a relax session runs. Survives reboot/logout/crash so the session
     /// can resume on next launch; cleared when the session is stopped.
     static var relaxWasRunning: Bool {
@@ -411,6 +453,18 @@ public final class MenuBarViewModel: ObservableObject {
             Analytics.track("relax_error", ["reason": "interval_not_longer"])
             return
         }
+        if let schedule = relaxSchedule {
+            if let error = schedule.validationError {
+                lastError = error
+                Analytics.track("relax_error", ["reason": "invalid_schedule"])
+                return
+            }
+            if schedule.nextBreak(after: Date(), interval: intervalSec, breakDuration: breakSec) == nil {
+                lastError = "No breaks with these settings"
+                Analytics.track("relax_error", ["reason": "no_breaks"])
+                return
+            }
+        }
 
         let config = RelaxingSessionConfig(
             interval: intervalSec,
@@ -420,7 +474,8 @@ public final class MenuBarViewModel: ObservableObject {
             opacity: relaxTransparency.rawValue,
             silent: relaxSilent,
             showPostureReminder: relaxShowPostureReminder,
-            postureInterval: parsedPostureInterval
+            postureInterval: parsedPostureInterval,
+            schedule: relaxSchedule
         )
 
         // Save config
@@ -445,7 +500,7 @@ public final class MenuBarViewModel: ObservableObject {
 
         relaxSession?.start()
         Self.relaxWasRunning = true
-        startRelaxCountdownTimer(seconds: intervalSec, isBreak: false)
+        startRelaxCountdownTimer(seconds: secondsUntilNextBreak, isBreak: false)
 
         relaxStartDate = Date()
         relaxBreaks = 0
@@ -460,6 +515,9 @@ public final class MenuBarViewModel: ObservableObject {
             "posture_interval_sec": parsedPostureInterval ?? 0,
             "menubar_timer": relaxShowTimerInMenuBar,
             "resumed": isResuming,
+            "schedule": relaxScheduleEnabled,
+            "quiet": relaxScheduleEnabled && relaxQuietEnabled,
+            "align": relaxScheduleEnabled && relaxAlignToClock,
         ])
     }
 
@@ -491,10 +549,35 @@ public final class MenuBarViewModel: ObservableObject {
     /// Discard the running countdown and wait a full interval again.
     public func restartRelaxCountdown() {
         guard isRelaxWaiting, let session = relaxSession else { return }
-        Analytics.track("relax_restart", ["elapsed_sec": session.config.interval - relaxRemainingSeconds])
+        // A schedule can hold the wait longer than the interval; don't report negative time.
+        Analytics.track("relax_restart", ["elapsed_sec": max(0, session.config.interval - relaxRemainingSeconds)])
         // skipBreak with no break showing just reschedules the next one.
         session.skipBreak()
-        startRelaxCountdownTimer(seconds: session.config.interval, isBreak: false)
+        startRelaxCountdownTimer(seconds: secondsUntilNextBreak, isBreak: false)
+    }
+
+    /// With fixed break times a restart lands on the same grid point, so it's hidden.
+    public var canRestartRelaxCountdown: Bool {
+        relaxSession?.config.schedule?.alignToClock != true
+    }
+
+    private var secondsUntilNextBreak: Int {
+        guard let next = relaxSession?.nextBreakDate else { return relaxSession?.config.interval ?? 0 }
+        return max(0, Int(next.timeIntervalSinceNow.rounded()))
+    }
+
+    /// Status line under the countdown, shown only when a schedule can move the break
+    /// off the plain interval: "next break at 1:50 PM", or "paused · ..." while the
+    /// schedule holds breaks back (off days, outside hours, quiet hours).
+    public var nextBreakTimeText: String? {
+        guard let session = relaxSession, session.config.schedule != nil,
+              let next = session.nextBreakDate else { return nil }
+        let f = DateFormatter()
+        f.setLocalizedDateFormatFromTemplate(Calendar.current.isDateInToday(next) ? "jmm" : "EEEjmm")
+        let paused = next.timeIntervalSinceNow > TimeInterval(session.config.interval)
+        return paused
+            ? "paused until \(f.string(from: next.addingTimeInterval(-TimeInterval(session.config.interval)))) · next break \(f.string(from: next))"
+            : "next break at \(f.string(from: next))"
     }
 
     var parsedPostureInterval: Int? {
@@ -560,8 +643,8 @@ public final class MenuBarViewModel: ObservableObject {
         }
         isOnBreak = false
         isRelaxWaiting = true
-        relaxRemainingSeconds = config.interval
-        startRelaxCountdownTimer(seconds: config.interval, isBreak: false)
+        relaxRemainingSeconds = secondsUntilNextBreak
+        startRelaxCountdownTimer(seconds: secondsUntilNextBreak, isBreak: false)
         onSessionStateChanged?(true)
     }
 
@@ -570,7 +653,10 @@ public final class MenuBarViewModel: ObservableObject {
         relaxRemainingSeconds = seconds
         relaxCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self = self else { timer.invalidate(); return }
-            if self.relaxRemainingSeconds > 0 {
+            if !isBreak, self.relaxSession?.nextBreakDate != nil {
+                // Read from the target date so long scheduled waits survive sleep.
+                self.relaxRemainingSeconds = self.secondsUntilNextBreak
+            } else if self.relaxRemainingSeconds > 0 {
                 self.relaxRemainingSeconds -= 1
             } else {
                 timer.invalidate()
@@ -579,6 +665,10 @@ public final class MenuBarViewModel: ObservableObject {
     }
 
     public var formattedRelaxRemaining: String {
+        if relaxRemainingSeconds >= 3600 {
+            let s = relaxRemainingSeconds
+            return String(format: "%d:%02d:%02d", s / 3600, s % 3600 / 60, s % 60)
+        }
         let mins = relaxRemainingSeconds / 60
         let secs = relaxRemainingSeconds % 60
         return String(format: "%d:%02d", mins, secs)
@@ -671,6 +761,16 @@ public final class MenuBarViewModel: ObservableObject {
         }
         relaxShowPostureReminder = config.showPostureReminder
         relaxPostureInterval = config.postureInterval.map { "\($0 / 60)" } ?? ""
+        if let schedule = config.schedule {
+            relaxScheduleEnabled = true
+            relaxWeekdays = schedule.weekdays
+            relaxActiveStart = schedule.activeStart
+            relaxActiveEnd = schedule.activeEnd
+            relaxQuietEnabled = schedule.quietStart != nil
+            relaxQuietStart = schedule.quietStart ?? relaxQuietStart
+            relaxQuietEnd = schedule.quietEnd ?? relaxQuietEnd
+            relaxAlignToClock = schedule.alignToClock
+        }
     }
 
     // MARK: - Previews
