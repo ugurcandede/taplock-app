@@ -11,9 +11,11 @@ struct RelaxActiveView: View {
                     .font(.system(size: 56, weight: .ultraLight, design: .monospaced))
                     .padding(.top, 24)
 
-                Text(viewModel.isOnBreak ? "break time!" : "next break in...")
+                Text(viewModel.isOnBreak ? "break time!" : (viewModel.nextBreakTimeText ?? "next break in..."))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
             }
 
             Spacer().frame(height: 20)
@@ -47,17 +49,19 @@ struct RelaxActiveView: View {
                     .foregroundColor(.accentColor)
                     .cornerRadius(8)
 
-                    Button(action: { viewModel.restartRelaxCountdown() }) {
-                        Text("restart")
-                            .font(.system(size: 12, weight: .medium))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 36)
+                    if viewModel.canRestartRelaxCountdown {
+                        Button(action: { viewModel.restartRelaxCountdown() }) {
+                            Text("restart")
+                                .font(.system(size: 12, weight: .medium))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 36)
+                        }
+                        .buttonStyle(.plain)
+                        .focusable(false)
+                        .background(Color.orange.opacity(0.1))
+                        .foregroundColor(.orange)
+                        .cornerRadius(8)
                     }
-                    .buttonStyle(.plain)
-                    .focusable(false)
-                    .background(Color.orange.opacity(0.1))
-                    .foregroundColor(.orange)
-                    .cornerRadius(8)
                 }
                 .padding(.horizontal, 20)
 

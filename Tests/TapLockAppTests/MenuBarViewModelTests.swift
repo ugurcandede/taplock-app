@@ -196,6 +196,12 @@ struct ViewModelFormattingTests {
         #expect(vm.formattedRelaxRemaining == "2:05")
     }
 
+    @Test func formattedRelaxRemaining_hours() {
+        let vm = MenuBarViewModel()
+        vm.relaxRemainingSeconds = 13 * 3600 + 5 * 60 + 7
+        #expect(vm.formattedRelaxRemaining == "13:05:07")
+    }
+
     @Test func formattedRemaining_largeValue() {
         let vm = MenuBarViewModel()
         vm.remainingSeconds = 3661
@@ -636,5 +642,73 @@ struct ViewModelMenuBarTimerTests {
         vm.isRelaxWaiting = true
         vm.relaxShowTimerInMenuBar = false
         #expect(calls == 1)
+    }
+}
+
+// MARK: - Relax Schedule
+
+@Suite("MenuBarViewModel - Relax Schedule")
+struct ViewModelRelaxScheduleTests {
+
+    private func scheduledViewModel() -> MenuBarViewModel {
+        let vm = MenuBarViewModel()
+        vm.relaxInterval = "50"
+        vm.relaxIntervalUnit = .minutes
+        vm.relaxBreakDuration = "10"
+        vm.relaxBreakUnit = .minutes
+        vm.relaxScheduleEnabled = true
+        vm.relaxWeekdays = Set(1...7)
+        vm.relaxActiveStart = 0
+        vm.relaxActiveEnd = 24 * 60
+        vm.relaxQuietEnabled = false
+        vm.relaxAlignToClock = false
+        return vm
+    }
+
+    @Test func disabledScheduleHasNoPreviewOrError() {
+        let vm = scheduledViewModel()
+        vm.relaxScheduleEnabled = false
+        #expect(vm.schedulePreview == nil)
+        #expect(vm.scheduleError == nil)
+    }
+
+    @Test func previewListsThreeBreaks() {
+        let vm = scheduledViewModel()
+        let dates = vm.schedulePreview ?? []
+        #expect(dates.count == 3)
+        // Plain rhythm: each break is interval + break after the previous one.
+        #expect(abs(dates[1].timeIntervalSince(dates[0]) - 3600) < 1)
+    }
+
+    @Test func quietOutsideHoursIsAnError() {
+        let vm = scheduledViewModel()
+        vm.relaxActiveStart = 9 * 60
+        vm.relaxActiveEnd = 18 * 60
+        vm.relaxQuietEnabled = true
+        vm.relaxQuietStart = 8 * 60
+        vm.relaxQuietEnd = 13 * 60
+        #expect(vm.scheduleError != nil)
+    }
+
+    @Test func intervalLongerThanHoursHasEmptyPreview() {
+        let vm = scheduledViewModel()
+        vm.relaxActiveStart = 9 * 60
+        vm.relaxActiveEnd = 10 * 60
+        vm.relaxInterval = "2"
+        vm.relaxIntervalUnit = .hours
+        #expect(vm.scheduleError == nil)
+        #expect(vm.schedulePreview == [])
+    }
+
+    @Test func invalidScheduleBlocksStart() {
+        let vm = scheduledViewModel()
+        vm.relaxWeekdays = []
+        vm.startRelaxSession()
+        #expect(vm.isRelaxWaiting == false)
+        #expect(vm.lastError != nil)
+    }
+
+    @Test func restartAvailableWithoutSession() {
+        #expect(MenuBarViewModel().canRestartRelaxCountdown)
     }
 }
