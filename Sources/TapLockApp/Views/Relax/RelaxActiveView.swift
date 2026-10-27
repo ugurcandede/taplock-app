@@ -6,16 +6,39 @@ struct RelaxActiveView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 16) {
-                Text(viewModel.formattedRelaxRemaining)
-                    .font(.system(size: 56, weight: .ultraLight, design: .monospaced))
-                    .padding(.top, 24)
+            if !viewModel.isOnBreak, let resume = viewModel.relaxPausedUntilText {
+                // A schedule is holding breaks back: when they resume, not a long countdown.
+                VStack(spacing: 16) {
+                    Text(resume)
+                        .font(.system(size: 44, weight: .ultraLight, design: .monospaced))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .padding(.top, 24)
+                        .padding(.horizontal, 20)
 
-                Text(viewModel.isOnBreak ? "break time!" : (viewModel.nextBreakTimeText ?? "next break in..."))
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    VStack(spacing: 4) {
+                        Text(viewModel.relaxPauseReasonText ?? "")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Text(viewModel.relaxPauseDetailText ?? "")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary.opacity(0.7))
+                    }
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
+                }
+            } else {
+                VStack(spacing: 16) {
+                    Text(viewModel.formattedRelaxRemaining)
+                        .font(.system(size: 56, weight: .ultraLight, design: .monospaced))
+                        .padding(.top, 24)
+
+                    Text(viewModel.isOnBreak ? "break time!" : (viewModel.nextBreakTimeText ?? "next break in..."))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                }
             }
 
             Spacer().frame(height: 20)

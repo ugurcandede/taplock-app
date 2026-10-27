@@ -557,8 +557,49 @@ public final class MenuBarViewModel: ObservableObject {
     }
 
     /// With fixed break times a restart lands on the same grid point, so it's hidden.
+    /// While paused the restart lands on the same break, so it's hidden too.
     public var canRestartRelaxCountdown: Bool {
-        relaxSession?.config.schedule?.alignToClock != true
+        relaxSession?.config.schedule?.alignToClock != true && !isRelaxPaused
+    }
+
+    /// True while a schedule holds the next break back; the panel then shows when
+    /// breaks resume instead of a countdown, and the menu bar a resting icon.
+    @Published public private(set) var isRelaxPaused = false
+
+    private func refreshRelaxPaused() {
+        let paused = relaxSession?.pausedUntil != nil
+        guard paused != isRelaxPaused else { return }
+        isRelaxPaused = paused
+        onSessionStateChanged?(true)
+    }
+
+    /// Paused screen headline: when breaks resume, e.g. "09:00" or "Mon 09:00".
+    public var relaxPausedUntilText: String? {
+        relaxSession?.pausedUntil.map(Self.clockText)
+    }
+
+    /// Paused screen, under the headline: why breaks are held back.
+    public var relaxPauseReasonText: String? {
+        guard relaxSession?.pausedUntil != nil, let schedule = relaxSession?.config.schedule else { return nil }
+        switch schedule.pauseReason(at: Date()) {
+        case .outsideHours: return "Outside your active hours"
+        case .quietHours: return "Quiet hours"
+        case .beforeQuietHours: return "No break before quiet hours"
+        case .doneForToday: return "No more breaks today"
+        }
+    }
+
+    /// Paused screen, last line: "breaks resume then · first at 09:50".
+    public var relaxPauseDetailText: String? {
+        guard relaxSession?.pausedUntil != nil, let next = relaxSession?.nextBreakDate else { return nil }
+        return "breaks resume then · first at \(Self.clockText(next))"
+    }
+
+    /// Short local time, with the weekday when it isn't today.
+    private static func clockText(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.setLocalizedDateFormatFromTemplate(Calendar.current.isDateInToday(date) ? "jmm" : "EEEjmm")
+        return f.string(from: date)
     }
 
     private var secondsUntilNextBreak: Int {
@@ -566,18 +607,12 @@ public final class MenuBarViewModel: ObservableObject {
         return max(0, Int(next.timeIntervalSinceNow.rounded()))
     }
 
-    /// Status line under the countdown, shown only when a schedule can move the break
-    /// off the plain interval: "next break at 1:50 PM", or "paused · ..." while the
-    /// schedule holds breaks back (off days, outside hours, quiet hours).
+    /// Status line under the countdown when a schedule is set: "next break at 1:50 PM".
+    /// While paused the panel shows the paused screen instead.
     public var nextBreakTimeText: String? {
         guard let session = relaxSession, session.config.schedule != nil,
               let next = session.nextBreakDate else { return nil }
-        let f = DateFormatter()
-        f.setLocalizedDateFormatFromTemplate(Calendar.current.isDateInToday(next) ? "jmm" : "EEEjmm")
-        let paused = next.timeIntervalSinceNow > TimeInterval(session.config.interval)
-        return paused
-            ? "paused until \(f.string(from: next.addingTimeInterval(-TimeInterval(session.config.interval)))) · next break \(f.string(from: next))"
-            : "next break at \(f.string(from: next))"
+        return "next break at \(Self.clockText(next))"
     }
 
     var parsedPostureInterval: Int? {
@@ -598,6 +633,7 @@ public final class MenuBarViewModel: ObservableObject {
     }
 
     func relaxSessionEnded() {
+        isRelaxPaused = false
         if let start = relaxStartDate {
             Analytics.track("relax_end", [
                 "duration_sec": Int(Date().timeIntervalSince(start)),
@@ -651,8 +687,10 @@ public final class MenuBarViewModel: ObservableObject {
     private func startRelaxCountdownTimer(seconds: Int, isBreak: Bool) {
         relaxCountdownTimer?.invalidate()
         relaxRemainingSeconds = seconds
+        refreshRelaxPaused()
         relaxCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self = self else { timer.invalidate(); return }
+            self.refreshRelaxPaused()
             if !isBreak, self.relaxSession?.nextBreakDate != nil {
                 // Read from the target date so long scheduled waits survive sleep.
                 self.relaxRemainingSeconds = self.secondsUntilNextBreak
