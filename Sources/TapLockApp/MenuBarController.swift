@@ -97,12 +97,13 @@ final class MenuBarController {
             systemSymbolName: symbolName,
             accessibilityDescription: "TapLock"
         )
-        if isRelaxRunning {
+        if isRelaxRunning && !viewModel.isRelaxPaused {
             // Non-template so the menu bar keeps the color instead of tinting it monochrome.
             let green = image?.withSymbolConfiguration(.init(paletteColors: [.systemGreen]))
             green?.isTemplate = false
             statusItem.button?.image = green
         } else {
+            // Template; while a schedule pauses relax this is the monochrome filled leaf.
             statusItem.button?.image = image
         }
 
@@ -124,7 +125,8 @@ final class MenuBarController {
                         self.statusItem.button?.title = ""
                         return
                     }
-                    text = self.viewModel.formattedRelaxRemaining
+                    // Paused: no countdown, the icon says it.
+                    text = self.viewModel.isRelaxPaused ? "" : self.viewModel.formattedRelaxRemaining
                 } else {
                     guard self.viewModel.isActive else {
                         timer.invalidate()
@@ -134,7 +136,7 @@ final class MenuBarController {
                     text = self.viewModel.formattedRemaining
                 }
 
-                self.statusItem.button?.title = " " + text
+                self.statusItem.button?.title = text.isEmpty ? "" : " " + text
             }
         } else {
             statusItem.button?.title = ""
