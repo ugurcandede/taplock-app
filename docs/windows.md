@@ -19,7 +19,7 @@ description: TapLock for Windows — periodic break reminders with calming full-
     <a class="btn btn-ghost" href="https://github.com/ugurcandede/taplock-windows">View on GitHub</a>
   </div>
 
-  <p class="win-meta">Single file · ~40 MB · Windows 10 1809+ · no installer, no admin rights</p>
+  <p class="win-meta">Single file · ~45 MB · Windows 10 1809+ · no installer, no admin rights</p>
 </div>
 
 <div class="win-note">
@@ -168,6 +168,7 @@ Where the port does not match the original, it is on purpose:
 | **Sounds** | Two per cycle, not three — the chime ten seconds before a break is gone |
 | **Settings** | Saved on every change, not only when a session starts |
 | **Week boundary** | Monday (ISO 8601); macOS follows the system calendar |
+| **Schedule** | Hours are typed (`09:00-18:00`) and explained in tooltips; macOS uses time pickers |
 
 ---
 

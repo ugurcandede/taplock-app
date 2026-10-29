@@ -12,7 +12,7 @@
 </div>
 
 ---
-#### Releated
+#### Related
 <p style="text-align: center">
   <a href="https://ugurcandede.github.io/taplock-app"><img src="https://img.shields.io/badge/Website-000?style=flat-square&logo=safari&logoColor=white" alt="Website"></a>
   <a href="https://github.com/ugurcandede/taplock"><img src="https://img.shields.io/badge/CLI%20Repo-000?style=flat-square&logo=github&logoColor=white" alt="CLI"></a>
@@ -46,7 +46,7 @@ Lock mode is not part of the port. Config and event log share the schema used he
 |---|---|
 | 🔒 | **Lock Mode** — Menu bar icon with lock status indicator |
 | ⏱️ | Quick presets: 30s, 1m, 2m, 5m, 10m |
-| 🔢 | Custom duration input (seconds, minutes, hours) |
+| 🔢 | Custom duration input in seconds (up to an hour) |
 | ♾️ | Indefinite lock mode (5 min safety auto-unlock) |
 | ⏳ | Pre-lock delay with visible countdown |
 | ⌨️ | Keyboard only mode |
@@ -54,6 +54,10 @@ Lock mode is not part of the port. Config and event log share the schema used he
 | 🎨 | Overlay color and transparency presets |
 | 🔅 | Screen dimming |
 | 🔇 | Silent mode |
+| 🧍 | Posture reminder with preview and custom interval |
+| 📅 | Relax schedule: working days and hours, quiet hours, fixed break times |
+| 📊 | Statistics summary and full statistics window |
+| 🚀 | Launch at login |
 | 🚨 | Emergency cancel: hold **⌘⌥⌃L** for 3 seconds |
 
 ---
@@ -107,7 +111,7 @@ settings.
 
 ## Build from source
 
-Requires Swift 5.9+. Uses [TapLock](https://github.com/ugurcandede/taplock) as a git submodule.
+Requires Swift 6.0+. Uses [TapLock](https://github.com/ugurcandede/taplock) as a git submodule.
 
 ```bash
 git clone --recurse-submodules https://github.com/ugurcandede/taplock-app.git

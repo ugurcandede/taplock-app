@@ -47,7 +47,7 @@ Requires Windows 10 version 1809 or later. The executable is unsigned, so SmartS
 
 ## Build from Source
 
-Requires Swift 5.9+ (Xcode Command Line Tools).
+Requires Swift 6.0+ (Xcode Command Line Tools).
 
 ### CLI
 

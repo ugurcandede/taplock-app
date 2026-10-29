@@ -42,7 +42,7 @@ title: Home
     <div class="feature-card">
       <div class="icon">♾️</div>
       <h3>Flexible Duration</h3>
-      <p>Set seconds, minutes, or lock indefinitely with 5-minute safety auto-unlock.</p>
+      <p>Set seconds, minutes (up to an hour in the app), or lock indefinitely with 5-minute safety auto-unlock.</p>
     </div>
     <div class="feature-card">
       <div class="icon">🔅</div>
@@ -73,6 +73,26 @@ title: Home
       <div class="icon">💾</div>
       <h3>Persistent Config</h3>
       <p>Save your relaxing session settings once. Next time, just run <code>taplock relax</code>.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🧍</div>
+      <h3>Posture Reminder</h3>
+      <p>A gentle nudge between breaks. Halfway through by default, or on your own interval. Preview it any time.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">📅</div>
+      <h3>Relax Schedule</h3>
+      <p>Limit breaks to working days and hours, add quiet hours, or use fixed break times on the clock.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">📊</div>
+      <h3>Statistics</h3>
+      <p>Sessions, lock and break time at a glance. Open the full statistics window for any period.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🚀</div>
+      <h3>Launch at Login</h3>
+      <p>Start TapLock with your Mac. One toggle in settings.</p>
     </div>
   </div>
 </div>

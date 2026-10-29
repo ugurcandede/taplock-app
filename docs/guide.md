@@ -91,7 +91,7 @@ The app has two modes, switchable via the segmented control at the top of the po
 ### Lock Mode
 
 1. Click the **lock icon** in the menu bar
-2. Enter duration in seconds, or toggle **indefinite** mode
+2. Enter duration in seconds (up to an hour), or toggle **indefinite** mode
 3. Optionally use a **preset** (30s, 1m, 2m, 5m, 10m) to fill the input
 4. Click **start**
 
